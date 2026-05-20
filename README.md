@@ -36,9 +36,6 @@ cmake -S . -B build \
   -DCMAKE_TOOLCHAIN_FILE=~/vcpkg/scripts/buildsystems/vcpkg.cmake
 ```
 
-> If you see errors like `Could not find CrowConfig.cmake` or `nlohmann_jsonConfig.cmake`,
-> it usually means you forgot `-DCMAKE_TOOLCHAIN_FILE=...` 
-
 #### 3) Build
 
 ```bash
