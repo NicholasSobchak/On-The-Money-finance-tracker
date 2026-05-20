@@ -1,5 +1,12 @@
-# On-The-Money-finance-tracker
+<p align="center"><img src="On-The-Money_logo.png" alt="On-The-Money Logo" width=600 style="background: transparent;" /></p>
+
+<h4 align="center">A Personal Finance Solution.</h4>
+
+
+# Description
 On the money is a personal finance tracker for individuals looking for financial solace
+
+# Building this project
 
 ### Code Formatting (Pre-commit Hook)
 To have consistent formatting across the project, configure `pre-commit`. It's a hook that automatically runs `clang-format` on your staged C++ files before each commit.
