@@ -1,8 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
-enum class AccountType
+enum class AccountType : std::uint8_t
 {
   Checking,
   Savings,

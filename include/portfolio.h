@@ -13,7 +13,7 @@ public:
   bool in_the_red() const noexcept;
   bool in_the_green() const noexcept;
 
-  void add_account(std::unique_ptr<Account> account);
+  void add_account(const Account &account);
 
 private:
   std::vector<std::unique_ptr<Account>> m_accounts;

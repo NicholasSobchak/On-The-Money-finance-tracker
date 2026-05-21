@@ -32,7 +32,7 @@ bool Portfolio::in_the_red() const noexcept { return net_worth() < 0.0; }
 
 bool Portfolio::in_the_green() const noexcept { return net_worth() >= 0.0; }
 
-void Portfolio::add_account(std::unique_ptr<Account> account)
+void Portfolio::add_account(const Account &account)
 {
-  m_accounts.push_back(std::move(account));
+  m_accounts.push_back(std::make_unique<Account>(account));
 }
