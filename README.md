@@ -6,23 +6,6 @@
 # Description
 On the money is a personal finance tracker for individuals looking for financial solace
 
-# Account Hierarchy 
-```
-Account  (base — balance, owner, account number)
-├── SavingsAccount    (interest rate, notice period, lock)
-├── CurrentAccount    (overdraft limit)
-└── CreditAccount     (credit limit, APR, minimum payment)
-
-Investment  (base — current value, purchase value)
-├── StockHolding      (ticker, shares, purchase price)
-├── CryptoHolding     (coin, units, purchase price)
-└── PensionFund       (projected value, retirement date)
-
-Liability  (base — outstanding balance, interest rate)
-├── Mortgage          (property value, term, monthly payment)
-├── PersonalLoan      (term, monthly payment)
-└── CreditCardDebt    (credit limit, minimum payment)
-```
 
 # Building this project
 
