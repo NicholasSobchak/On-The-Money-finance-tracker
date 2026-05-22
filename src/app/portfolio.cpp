@@ -1,5 +1,7 @@
 #include "portfolio.h"
 
+#include <stdexcept>
+
 double Portfolio::net_worth() const noexcept { return total_assets() - total_liabilities(); }
 
 double Portfolio::total_assets() const noexcept
@@ -52,6 +54,15 @@ Transaction Portfolio::transfer(int from_account_id, int to_account_id, double a
     {
       to = a.get();
     }
+  }
+
+  if (!from)
+  {
+    throw std::invalid_argument("from_account_id not found");
+  }
+  if (!to)
+  {
+    throw std::invalid_argument("to_account_id not found");
   }
 
   from->withdraw(amount, "Transfer to " + to->get_name());
