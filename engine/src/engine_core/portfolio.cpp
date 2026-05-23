@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-double Portfolio::net_worth() const noexcept { return total_assets() - total_liabilities(); }
+double Portfolio::net_worth() const noexcept { return total_assets() + total_liabilities(); }
 
 double Portfolio::total_assets() const noexcept
 {

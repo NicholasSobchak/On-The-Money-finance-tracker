@@ -2,12 +2,34 @@
 
 <h4 align="center">A Personal Finance Solution.</h4>
 
-
-# Description
+#
+### Description
 On the money is a personal finance tracker for individuals looking for financial solace
 
+### Features
+    - coming soon
 
 # Building this project
+
+### Project Structure
+
+```
+On-The-Money-finance-tracker/
+├── engine/
+│   ├── include/
+│   ├── src/
+│   │   └── engine_core/
+│   ├── tests/
+│   │   └── unit/
+│   └── vcpkg_installed/
+├── java-api/
+│   └── src/
+│       ├── main/
+│       │   ├── java/
+│       │   └── resources/
+│       └── tests/
+├── scripts/
+```
 
 ### Code Formatting (Pre-commit Hook)
 To have consistent formatting across the project, configure `pre-commit`. It's a hook that automatically runs `clang-format` on your staged C++ files before each commit.

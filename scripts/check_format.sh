@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-FILES=$(find ./src ./include -type f \( -name "*.cpp" -o -name "*.h" \))
+FILES=$(find ./engine/src ./engine/include -type f \( -name "*.cpp" -o -name "*.h" \))
 
 if ! echo "$FILES" | xargs clang-format-17 --dry-run --Werror; then
   read -p "clang-format-17............................................Failed! Would you like to auto-fix them? (y/n): " answer
