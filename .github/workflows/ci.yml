@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: Build & Test
 
 on:
@@ -7,14 +6,13 @@ on:
   pull_request:
     branches: [main, dev]
 
-env:
-  VCPKG_ROOT: ${{ github.workspace }}/engine/vcpkg
-  VCPKG_REF: 2026.04.08
-
 jobs:
-  engine:
-    name: C++ Engine
-    runs-on: ubuntu-24.04
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    env:
+      CLANG_FORMAT_VERSION: "17"
+      VCPKG_REF: "2026.04.08"
 
     defaults:
       run:
@@ -23,35 +21,46 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
     - name: Install C++ Build Tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential
+        sudo apt-get install -y ninja-build build-essential clang-format-${CLANG_FORMAT_VERSION}
 
     - name: Check C++ Formatting
-      run: find . -path ./vcpkg -prune -o -type f \( -name "*.cpp" -o -name "*.h" \) -print | xargs clang-format-17 --dry-run --Werror
+      run: find src include tests -type f \( -name "*.cpp" -o -name "*.h" \) -exec clang-format-${CLANG_FORMAT_VERSION} --dry-run --Werror {} +
 
     - name: Cache vcpkg binary cache
       uses: actions/cache@v4
       with:
         path: ~/.cache/vcpkg/archives
         key: vcpkg-${{ runner.os }}-${{ env.VCPKG_REF }}-${{ hashFiles('engine/vcpkg.json') }}
-        restore-keys: vcpkg-
+        restore-keys: |
+          vcpkg-${{ runner.os }}-${{ env.VCPKG_REF }}-
+          vcpkg-${{ runner.os }}-
+
+    - name: Cache vcpkg installation
+      uses: actions/cache@v4
+      with:
+        path: engine/vcpkg
+        key: vcpkg-tool-${{ runner.os }}-${{ env.VCPKG_REF }}
 
     - name: Bootstrap Vcpkg
       run: |
-        if [ ! -x "${VCPKG_ROOT}/vcpkg" ]; then
-          rm -rf "${VCPKG_ROOT}"
-          git clone --branch "${VCPKG_REF}" --depth 1 https://github.com/microsoft/vcpkg.git "${VCPKG_ROOT}"
-          "${VCPKG_ROOT}/bootstrap-vcpkg.sh" -disableMetrics
+        if [ ! -x vcpkg/vcpkg ]; then
+          rm -rf vcpkg
+          git clone https://github.com/microsoft/vcpkg.git vcpkg
+          git -C vcpkg checkout "${VCPKG_REF}"
+          ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
         fi
 
     - name: Install C++ Dependencies with Vcpkg
-      run: "${VCPKG_ROOT}/vcpkg" install --triplet x64-linux
+      run: ./vcpkg/vcpkg install --triplet x64-linux
 
     - name: Configure CMake
-      run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      run: cmake -B build -S . -G Ninja -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/engine/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build C++ Project
       run: cmake --build build
