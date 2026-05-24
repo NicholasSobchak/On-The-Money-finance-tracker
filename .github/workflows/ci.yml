@@ -12,66 +12,57 @@ jobs:
     name: C++ Engine
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: engine
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install C++ Build Tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build
+        sudo apt-get install -y ninja-build build-essential clang-format-17
 
-    - name: Restore vcpkg cache
+    - name: Check C++ Formatting
+      run: find . -path ./vcpkg -prune -o -type f \( -name "*.cpp" -o -name "*.h" \) -print | xargs clang-format-17 --dry-run --Werror
+
+    - name: Cache vcpkg binary cache
       uses: actions/cache@v4
       with:
-        path: |
-          engine/vcpkg_installed
-          ~/.cache/vcpkg
-        key: vcpkg-${{ runner.os }}-${{ hashFiles('engine/vcpkg.json') }}
-        restore-keys: |
-          vcpkg-${{ runner.os }}-
+        path: ~/.cache/vcpkg/archives
+        key: vcpkg-${{ hashFiles('engine/vcpkg.json') }}
+        restore-keys: vcpkg-
 
-    - name: Configure
-      run: cmake -S engine -B build -G Ninja \
-        -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake
+    - name: Cache vcpkg installation
+      uses: actions/cache@v4
+      with:
+        path: engine/vcpkg
+        key: vcpkg-tool-${{ hashFiles('engine/vcpkg.json') }}
+        restore-keys: vcpkg-tool-
 
-    - name: Build
+    - name: Bootstrap Vcpkg
+      working-directory: engine
+      run: |
+        if [ ! -f vcpkg/vcpkg ]; then
+          git clone https://github.com/microsoft/vcpkg.git vcpkg
+          git -C vcpkg checkout 2025.04.09
+          ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+        fi
+
+    - name: Install C++ Dependencies with Vcpkg
+      working-directory: engine
+      run: ./vcpkg/vcpkg install --triplet x64-linux
+
+    - name: Configure CMake
+      working-directory: engine
+      run: cmake -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/engine/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+    - name: Build C++ Project
+      working-directory: engine
       run: cmake --build build
 
-    - name: Test
-      working-directory: build
-      run: ctest --output-on-failure
-
-  # java-api:
-  #   name: Java API
-  #   runs-on: ubuntu-latest
-  #
-  #   steps:
-  #   - name: Checkout repository
-  #     uses: actions/checkout@v4
-  #
-  #   - name: Set up JDK 21
-  #     uses: actions/setup-java@v4
-  #     with:
-  #       java-version: '21'
-  #       distribution: 'temurin'
-  #
-  #   - name: Build and test
-  #     working-directory: java-api
-  #     run: ./gradlew build
-
-  formatting:
-    name: Formatting Check
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Check C++ formatting
-      uses: cpp-linter/cpp-linter-action@v2
-      with:
-        style: file
-        tidy-checks: ''
-        files-changed-only: false
-        ignore: build|vcpkg_installed
+    - name: Run C++ Tests
+      working-directory: engine
+      run: ctest --test-dir build --output-on-failure
