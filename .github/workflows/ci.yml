@@ -7,10 +7,14 @@ on:
   pull_request:
     branches: [main, dev]
 
+env:
+  VCPKG_ROOT: ${{ github.workspace }}/engine/vcpkg
+  VCPKG_REF: 2026.04.08
+
 jobs:
   engine:
     name: C++ Engine
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     defaults:
       run:
@@ -23,7 +27,7 @@ jobs:
     - name: Install C++ Build Tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential clang-format-17
+        sudo apt-get install -y build-essential
 
     - name: Check C++ Formatting
       run: find . -path ./vcpkg -prune -o -type f \( -name "*.cpp" -o -name "*.h" \) -print | xargs clang-format-17 --dry-run --Werror
@@ -32,37 +36,25 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/vcpkg/archives
-        key: vcpkg-${{ hashFiles('engine/vcpkg.json') }}
+        key: vcpkg-${{ runner.os }}-${{ env.VCPKG_REF }}-${{ hashFiles('engine/vcpkg.json') }}
         restore-keys: vcpkg-
 
-    - name: Cache vcpkg installation
-      uses: actions/cache@v4
-      with:
-        path: engine/vcpkg
-        key: vcpkg-tool-${{ hashFiles('engine/vcpkg.json') }}
-        restore-keys: vcpkg-tool-
-
     - name: Bootstrap Vcpkg
-      working-directory: engine
       run: |
-        if [ ! -f vcpkg/vcpkg ]; then
-          git clone https://github.com/microsoft/vcpkg.git vcpkg
-          git -C vcpkg checkout 2026.04.08
-          ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+        if [ ! -x "${VCPKG_ROOT}/vcpkg" ]; then
+          rm -rf "${VCPKG_ROOT}"
+          git clone --branch "${VCPKG_REF}" --depth 1 https://github.com/microsoft/vcpkg.git "${VCPKG_ROOT}"
+          "${VCPKG_ROOT}/bootstrap-vcpkg.sh" -disableMetrics
         fi
 
     - name: Install C++ Dependencies with Vcpkg
-      working-directory: engine
-      run: ./vcpkg/vcpkg install --triplet x64-linux
+      run: "${VCPKG_ROOT}/vcpkg" install --triplet x64-linux
 
     - name: Configure CMake
-      working-directory: engine
-      run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/engine/vcpkg/scripts/buildsystems/vcpkg.cmake
+      run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
 
     - name: Build C++ Project
-      working-directory: engine
       run: cmake --build build
 
     - name: Run C++ Tests
-      working-directory: engine
       run: ctest --test-dir build --output-on-failure
