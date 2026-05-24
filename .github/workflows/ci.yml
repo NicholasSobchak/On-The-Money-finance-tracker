@@ -12,7 +12,7 @@ jobs:
 
     env:
       CLANG_FORMAT_VERSION: "17"
-      VCPKG_REF: "2026.04.08"
+      VCPKG_REF: "2026.04.27"
 
     defaults:
       run:
@@ -51,8 +51,7 @@ jobs:
       run: |
         if [ ! -x vcpkg/vcpkg ]; then
           rm -rf vcpkg
-          git clone https://github.com/microsoft/vcpkg.git vcpkg
-          git -C vcpkg checkout "${VCPKG_REF}"
+          git clone --branch "${VCPKG_REF}" --depth 1 https://github.com/microsoft/vcpkg.git vcpkg
           ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
         fi
 
