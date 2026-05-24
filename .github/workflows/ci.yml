@@ -23,7 +23,7 @@ jobs:
     - name: Install C++ Build Tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build build-essential clang-format-17
+        sudo apt-get install -y build-essential clang-format-17
 
     - name: Check C++ Formatting
       run: find . -path ./vcpkg -prune -o -type f \( -name "*.cpp" -o -name "*.h" \) -print | xargs clang-format-17 --dry-run --Werror
@@ -47,7 +47,7 @@ jobs:
       run: |
         if [ ! -f vcpkg/vcpkg ]; then
           git clone https://github.com/microsoft/vcpkg.git vcpkg
-          git -C vcpkg checkout 2025.04.09
+          git -C vcpkg checkout 2026.04.08
           ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
         fi
 
@@ -57,7 +57,7 @@ jobs:
 
     - name: Configure CMake
       working-directory: engine
-      run: cmake -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/engine/vcpkg/scripts/buildsystems/vcpkg.cmake
+      run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/engine/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build C++ Project
       working-directory: engine
