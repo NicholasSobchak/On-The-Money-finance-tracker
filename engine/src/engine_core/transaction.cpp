@@ -8,8 +8,7 @@ Transaction::Transaction(
     std::optional<int> to_account_id,
     std::chrono::sys_days date)
     : m_type(type), m_amount(amount), m_description(std::move(description)),
-      m_from_account_id(from_account_id), m_to_account_id(to_account_id),
-      m_date(date)
+      m_from_account_id(from_account_id), m_to_account_id(to_account_id), m_date(date)
 {
 }
 

@@ -21,15 +21,18 @@ public:
   bool inTheGreen() const noexcept;
 
   void addAccount(const Account &account);
-  Transaction transfer(int from_account_id, int to_account_id, double amount, std::chrono::sys_days date = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now()));
+  Transaction transfer(
+      int from_account_id,
+      int to_account_id,
+      double amount,
+      std::chrono::sys_days date =
+          std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now()));
   const Account *getAccount(int id) const noexcept;
   Account *getAccount(int id) noexcept;
 
   double netWorthAt(const std::chrono::system_clock::time_point &tp) const noexcept;
   std::vector<BalanceSnapshot> netWorthSnapshots(
-      std::chrono::sys_days start,
-      std::chrono::sys_days end,
-      std::chrono::days interval) const;
+      std::chrono::sys_days start, std::chrono::sys_days end, std::chrono::days interval) const;
 
   std::vector<const Transaction *> getTransactions(
       const std::chrono::system_clock::time_point &start,

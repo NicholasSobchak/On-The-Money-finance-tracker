@@ -47,13 +47,15 @@ int main()
   std::cout << "\n=== Savings Transaction History ===\n";
   for (const auto &txn : savings->getTransactions())
   {
-    std::cout << "  " << txn.getDescription() << " | $" << txn.getAmount() << " | " << std::chrono::year_month_day{txn.getDate()} << '\n';
+    std::cout << "  " << txn.getDescription() << " | $" << txn.getAmount() << " | "
+              << std::chrono::year_month_day{txn.getDate()} << '\n';
   }
 
   std::cout << "\n=== Checking Transaction History ===\n";
   for (const auto &txn : checking->getTransactions())
   {
-    std::cout << "  " << txn.getDescription() << " | $" << txn.getAmount() << " | " << std::chrono::year_month_day{txn.getDate()} << '\n';
+    std::cout << "  " << txn.getDescription() << " | $" << txn.getAmount() << " | "
+              << std::chrono::year_month_day{txn.getDate()} << '\n';
   }
 
   std::cout << "\n=== Summary ===\n";

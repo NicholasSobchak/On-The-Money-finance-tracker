@@ -3,7 +3,8 @@
 int Account::s_nextId{1};
 
 Account::Account(std::string name, double balance, AccountType type)
-    : m_id(s_nextId++), m_name(std::move(name)), m_initial_balance(balance), m_balance(balance), m_type(type)
+    : m_id(s_nextId++), m_name(std::move(name)), m_initial_balance(balance), m_balance(balance),
+      m_type(type)
 {
 }
 
@@ -78,7 +79,4 @@ double Account::totalWithdrawals() const noexcept
   return total;
 }
 
-double Account::netCashFlow() const noexcept
-{
-  return totalDeposits() - totalWithdrawals();
-}
+double Account::netCashFlow() const noexcept { return totalDeposits() - totalWithdrawals(); }

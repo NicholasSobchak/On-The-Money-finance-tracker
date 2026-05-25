@@ -28,8 +28,16 @@ public:
 
   static void resetIdCounter() noexcept { s_nextId = 1; }
 
-  Transaction deposit(double amount, std::string description = "", std::chrono::sys_days date = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now()));
-  Transaction withdraw(double amount, std::string description = "", std::chrono::sys_days date = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now()));
+  Transaction deposit(
+      double amount,
+      std::string description = "",
+      std::chrono::sys_days date =
+          std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now()));
+  Transaction withdraw(
+      double amount,
+      std::string description = "",
+      std::chrono::sys_days date =
+          std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now()));
 
   const std::vector<Transaction> &getTransactions() const noexcept { return m_transactions; }
   double balanceAt(const std::chrono::system_clock::time_point &tp) const noexcept;

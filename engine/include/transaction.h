@@ -21,7 +21,8 @@ public:
       std::string description,
       int from_account_id,
       std::optional<int> to_account_id = std::nullopt,
-      std::chrono::sys_days date = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now()));
+      std::chrono::sys_days date =
+          std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now()));
 
   TransactionType getType() const noexcept;
   double getAmount() const noexcept;

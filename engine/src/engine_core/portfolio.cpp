@@ -39,7 +39,8 @@ void Portfolio::addAccount(const Account &account)
   m_accounts.push_back(std::make_unique<Account>(account));
 }
 
-Transaction Portfolio::transfer(int from_account_id, int to_account_id, double amount, std::chrono::sys_days date)
+Transaction Portfolio::transfer(
+    int from_account_id, int to_account_id, double amount, std::chrono::sys_days date)
 {
   Account *from{nullptr};
   Account *to{nullptr};
@@ -70,8 +71,8 @@ Transaction Portfolio::transfer(int from_account_id, int to_account_id, double a
 
   return Transaction(
       TransactionType::Transfer, amount,
-      "Transfer from " + from->getName() + " to " + to->getName(), from_account_id,
-      to_account_id, date);
+      "Transfer from " + from->getName() + " to " + to->getName(), from_account_id, to_account_id,
+      date);
 }
 
 const Account *Portfolio::getAccount(int id) const noexcept
@@ -109,9 +110,7 @@ double Portfolio::netWorthAt(const std::chrono::system_clock::time_point &tp) co
 }
 
 std::vector<BalanceSnapshot> Portfolio::netWorthSnapshots(
-    std::chrono::sys_days start,
-    std::chrono::sys_days end,
-    std::chrono::days interval) const
+    std::chrono::sys_days start, std::chrono::sys_days end, std::chrono::days interval) const
 {
   std::vector<BalanceSnapshot> snapshots;
   for (auto t = start; t <= end; t += interval)
