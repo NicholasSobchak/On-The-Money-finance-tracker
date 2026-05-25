@@ -1,21 +1,39 @@
 #pragma once
 
 #include "account.h"
+#include <chrono>
 #include <memory>
 #include <vector>
+
+struct BalanceSnapshot
+{
+  std::chrono::sys_days timestamp;
+  double net_worth;
+};
 
 class Portfolio
 {
 public:
-  double net_worth() const noexcept;
-  double total_assets() const noexcept;
-  double total_liabilities() const noexcept;
-  bool in_the_red() const noexcept;
-  bool in_the_green() const noexcept;
+  double netWorth() const noexcept;
+  double totalAssets() const noexcept;
+  double totalLiabilities() const noexcept;
+  bool inTheRed() const noexcept;
+  bool inTheGreen() const noexcept;
 
-  void add_account(const Account &account);
-  Transaction transfer(int from_account_id, int to_account_id, double amount);
-  const Account *get_account(int id) const noexcept;
+  void addAccount(const Account &account);
+  Transaction transfer(int from_account_id, int to_account_id, double amount, std::chrono::sys_days date = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now()));
+  const Account *getAccount(int id) const noexcept;
+  Account *getAccount(int id) noexcept;
+
+  double netWorthAt(const std::chrono::system_clock::time_point &tp) const noexcept;
+  std::vector<BalanceSnapshot> netWorthSnapshots(
+      std::chrono::sys_days start,
+      std::chrono::sys_days end,
+      std::chrono::days interval) const;
+
+  std::vector<const Transaction *> getTransactions(
+      const std::chrono::system_clock::time_point &start,
+      const std::chrono::system_clock::time_point &end) const;
 
 private:
   std::vector<std::unique_ptr<Account>> m_accounts;

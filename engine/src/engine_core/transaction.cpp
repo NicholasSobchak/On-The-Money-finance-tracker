@@ -5,21 +5,22 @@ Transaction::Transaction(
     double amount,
     std::string description,
     int from_account_id,
-    std::optional<int> to_account_id)
+    std::optional<int> to_account_id,
+    std::chrono::sys_days date)
     : m_type(type), m_amount(amount), m_description(std::move(description)),
       m_from_account_id(from_account_id), m_to_account_id(to_account_id),
-      m_date(std::chrono::system_clock::now())
+      m_date(date)
 {
 }
 
-TransactionType Transaction::get_type() const noexcept { return m_type; }
+TransactionType Transaction::getType() const noexcept { return m_type; }
 
-double Transaction::get_amount() const noexcept { return m_amount; }
+double Transaction::getAmount() const noexcept { return m_amount; }
 
-const std::string &Transaction::get_description() const noexcept { return m_description; }
+const std::string &Transaction::getDescription() const noexcept { return m_description; }
 
-int Transaction::get_from_account_id() const noexcept { return m_from_account_id; }
+int Transaction::getFromAccountId() const noexcept { return m_from_account_id; }
 
-std::optional<int> Transaction::get_to_account_id() const noexcept { return m_to_account_id; }
+std::optional<int> Transaction::getToAccountId() const noexcept { return m_to_account_id; }
 
-std::chrono::system_clock::time_point Transaction::get_date() const noexcept { return m_date; }
+std::chrono::sys_days Transaction::getDate() const noexcept { return m_date; }
