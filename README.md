@@ -1,7 +1,9 @@
 <p align="center"><img src="On-The-Money_logo.png" alt="On-The-Money Logo" width=600 style="background: transparent;" /></p>
 
 <h4 align="center">A Personal Finance Solution.</h4>
-[![Build & Test](https://github.com/NicholasSobchak/On-The-Money-finance-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/NicholasSobchak/On-The-Money-finance-tracker/actions/workflows/ci.yml)
+<p align="center">
+  <a href="https://github.com/NicholasSobchak/On-The-Money-finance-tracker/actions"><img src="https://github.com/NicholasSobchak/On-The-Money-finance-tracker/actions/workflows/ci.yml/badge.svg" alt="Build and Test"></a>
+</p>
 
 #
 ### Description
