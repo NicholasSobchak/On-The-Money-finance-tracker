@@ -126,19 +126,17 @@ TEST_CASE("Portfolio get_transactions filters by date range")
   p.getAccount(id_a)->deposit(200.0, "", yesterday);
   p.getAccount(id_a)->withdraw(100.0, "", today);
 
-  auto all = p.getTransactions(system_clock::time_point(yesterday - days{1}),
-                                system_clock::time_point(tomorrow));
+  auto all = p.getTransactions(
+      system_clock::time_point(yesterday - days{1}), system_clock::time_point(tomorrow));
   REQUIRE(all.size() == 2);
 
-  auto first_only = p.getTransactions(system_clock::time_point(yesterday - days{1}),
-                                      system_clock::time_point(yesterday));
+  auto first_only = p.getTransactions(
+      system_clock::time_point(yesterday - days{1}), system_clock::time_point(yesterday));
   REQUIRE(first_only.size() == 1);
   REQUIRE(first_only[0]->getAmount() == 200.0);
 
-  auto later_only = p.getTransactions(system_clock::time_point(today),
-                                      system_clock::time_point(tomorrow));
+  auto later_only =
+      p.getTransactions(system_clock::time_point(today), system_clock::time_point(tomorrow));
   REQUIRE(later_only.size() == 1);
   REQUIRE(later_only[0]->getAmount() == 100.0);
 }
-
-
