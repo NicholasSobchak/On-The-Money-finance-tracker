@@ -1,20 +1,32 @@
 <p align="center"><img src="On-The-Money_logo.png" alt="On-The-Money Logo" width=600 style="background: transparent;" /></p>
 
 <h4 align="center">A Personal Finance Solution.</h4>
+[![Build & Test](https://github.com/NicholasSobchak/On-The-Money-finance-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/NicholasSobchak/On-The-Money-finance-tracker/actions/workflows/ci.yml)
 
 #
 ### Description
-On the money is a personal finance tracker for individuals looking for financial solace
+On the money is a personal finance tracker built in C++. It uses a Java API and Springboot framework, and a IOS frontend app coded in Swift. 
 
 ### Features
     - coming soon
 
 # Building this project
 
+### This project uses
+    - C++20
+    - Java
+    - Swift
+    - PostgreSQL
+    - Springboot
+    - Docker
+    - CMake
+    - Gradle
+    - clang (tidy/format)
+
 ### Project Structure
 
 ```
-On-The-Money-finance-tracker/
+.
 ├── engine/
 │   ├── include/
 │   ├── src/
