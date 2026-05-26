@@ -19,7 +19,7 @@ On the money is a personal finance tracker built in C++. It uses a Java API and 
   - Java
   - Swift
   - PostgreSQL
-  - Springboot
+  - [Springboot](https://spring.io/guides/gs/spring-boot)
   - Docker
   - CMake
   - Gradle

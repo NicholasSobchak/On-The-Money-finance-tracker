@@ -68,3 +68,9 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Gradle
+.gradle/
+
+# Java compiled classes
+*.class

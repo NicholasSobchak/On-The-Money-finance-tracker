@@ -1,0 +1,43 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.0'
+    id 'io.spring.dependency-management' version '1.1.5'
+}
+
+group = 'com.onthemoney'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        // Keeps your project locked to your stable Java 17 LTS installation
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    // Tells Gradle to pull your open-source libraries from the secure Maven Central cloud repo
+    mavenCentral()
+}
+
+dependencies {
+    // 1. CORE WEB: Built-in Tomcat server to run your REST API endpoints
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // 2. DATABASE LAYER: Implements JPA / Hibernate so Java can talk to PostgreSQL using Java objects
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // 3. DATABASE DRIVER: The direct translation pipeline to your Docker PostgreSQL database
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // 4. SECURITY: Extra protection libraries for handling environmental tokens safely
+    implementation 'io.github.cdimascio:dotenv-java:3.0.0'
+
+    // 5. TESTING: Includes JUnit and Mockito so your GitHub Actions pipeline can run automated tests
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    // Core setup to ensure JUnit 5 platform triggers during your Gradle build/test commands
+    useJUnitPlatform()
+}
