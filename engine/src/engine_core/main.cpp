@@ -1,67 +1,15 @@
 #include "portfolio.h"
 #include <iostream>
 
-int main()
-{
-  Account::resetIdCounter();
-  Portfolio portfolio;
-  portfolio.addAccount(Account("Nick's savings", 3500.0, AccountType::Savings));
-  portfolio.addAccount(Account("Nick's checking", 50.0, AccountType::Checking));
+/*
+ * OK, so i chose to go with a subprocess through C++ for a couple of reasons.
+ *  1. this is a pretty small program in relation to larger ones
+ *  2. JNI is a headache to deal with for such a small program
+ *  3. Debugging will be much quicker and easier to dael with to complete this project
+ *  within a reasonable amount of time
+ *  4. As much as I would like to learn and get familiar with JNI in this project,
+ *  it is not worth the time when it won't even serve it's purpose (high-performance)
+ *  5. I am going with the subprocess
+ */
 
-  Account *savings = portfolio.getAccount(1);
-  Account *checking = portfolio.getAccount(2);
-
-  auto today = floor<std::chrono::days>(std::chrono::system_clock::now());
-
-  Transaction birthday = savings->deposit(200.0, "Birthday money", today);
-  Transaction coffee = checking->withdraw(25.0, "Coffee", today);
-
-  Transaction t = portfolio.transfer(savings->getId(), checking->getId(), 100.0, today);
-
-  std::cout << "=== Account Balances ===\n";
-  std::cout << savings->getName() << ": $" << savings->getBalance() << '\n';
-  std::cout << checking->getName() << ": $" << checking->getBalance() << '\n';
-
-  std::cout << "\n=== Deposit Info ===\n";
-  std::cout << "Description: " << birthday.getDescription() << '\n';
-  std::cout << "Amount: $" << birthday.getAmount() << '\n';
-  std::cout << "Account ID: " << birthday.getFromAccountId() << '\n';
-  std::cout << "Date: " << std::chrono::year_month_day{birthday.getDate()} << '\n';
-
-  std::cout << "\n=== Withdrawal Info ===\n";
-  std::cout << "Description: " << coffee.getDescription() << '\n';
-  std::cout << "Amount: $" << coffee.getAmount() << '\n';
-  std::cout << "Account ID: " << coffee.getFromAccountId() << '\n';
-  std::cout << "Date: " << std::chrono::year_month_day{coffee.getDate()} << '\n';
-
-  std::cout << "\n=== Transfer Info ===\n";
-  std::cout << "Description: " << t.getDescription() << '\n';
-  std::cout << "Amount: $" << t.getAmount() << '\n';
-  std::cout << "From account ID: " << t.getFromAccountId() << '\n';
-  std::cout << "Date: " << std::chrono::year_month_day{t.getDate()} << '\n';
-  if (auto to_id = t.getToAccountId())
-  {
-    std::cout << "To account ID: " << *to_id << '\n';
-  }
-
-  std::cout << "\n=== Savings Transaction History ===\n";
-  for (const auto &txn : savings->getTransactions())
-  {
-    std::cout << "  " << txn.getDescription() << " | $" << txn.getAmount() << " | "
-              << std::chrono::year_month_day{txn.getDate()} << '\n';
-  }
-
-  std::cout << "\n=== Checking Transaction History ===\n";
-  for (const auto &txn : checking->getTransactions())
-  {
-    std::cout << "  " << txn.getDescription() << " | $" << txn.getAmount() << " | "
-              << std::chrono::year_month_day{txn.getDate()} << '\n';
-  }
-
-  std::cout << "\n=== Summary ===\n";
-  std::cout << "Savings total deposits: $" << savings->totalDeposits() << '\n';
-  std::cout << "Checking total withdrawals: $" << checking->totalWithdrawals() << '\n';
-  std::cout << "Portfolio net worth: $" << portfolio.netWorth() << '\n';
-
-  return 0;
-}
+int main() { return 0; }

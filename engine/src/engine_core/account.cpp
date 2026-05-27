@@ -8,6 +8,12 @@ Account::Account(std::string name, double balance, AccountType type)
 {
 }
 
+Account::Account(int id, std::string name, double balance, AccountType type)
+    : m_id(id), m_name(std::move(name)), m_initial_balance(balance), m_balance(balance),
+      m_type(type)
+{
+}
+
 Transaction Account::deposit(double amount, std::string description, std::chrono::sys_days date)
 {
   m_balance += amount;

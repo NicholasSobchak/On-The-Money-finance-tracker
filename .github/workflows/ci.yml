@@ -7,7 +7,7 @@ on:
     branches: [main, dev]
 
 jobs:
-  build-and-test:
+  c++ build-and-test:
     runs-on: ubuntu-latest
 
     env:
@@ -67,7 +67,7 @@ jobs:
     - name: Run C++ Tests
       run: ctest --test-dir build --output-on-failure
 
-  java-api:
+  java-api build-and-test:
     runs-on: ubuntu-latest
 
     steps:

@@ -19,6 +19,7 @@ class Account
 {
 public:
   Account(std::string name, double balance, AccountType type);
+  Account(int id, std::string name, double balance, AccountType type);
   ~Account() = default;
 
   double getBalance() const noexcept { return m_balance; }
