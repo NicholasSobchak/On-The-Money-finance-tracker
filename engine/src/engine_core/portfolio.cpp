@@ -75,6 +75,18 @@ Transaction Portfolio::transfer(
       date);
 }
 
+Account *Portfolio::getAccountByName(const std::string &name) noexcept
+{
+  for (const auto &a : m_accounts)
+  {
+    if (a->getName() == name)
+    {
+      return a.get();
+    }
+  }
+  return nullptr;
+}
+
 const Account *Portfolio::getAccount(int id) const noexcept
 {
   for (const auto &a : m_accounts)

@@ -58,6 +58,7 @@ compile_commands.json
 *.bak
 *.swp
 .codex
+valgrind_output.txt
 
 # vcpkg
 vcpkg_installed/

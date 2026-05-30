@@ -7,7 +7,7 @@ on:
     branches: [main, dev]
 
 jobs:
-  c++ build-and-test:
+  cpp-build-and-test:
     runs-on: ubuntu-latest
 
     env:
