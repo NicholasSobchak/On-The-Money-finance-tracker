@@ -2,7 +2,7 @@
 
 <h4 align="center">A Personal Finance Solution.</h4>
 <p align="center">
-  <a href="https://github.com/NicholasSobchak/On-The-Money-finance-tracker/actions"><img src="https://github.com/NicholasSobchak/On-The-Money-finance-tracker/actions/workflows/Build+%26+Test/badge.svg" alt="Build and Test"></a>
+  <a href="https://github.com/NicholasSobchak/On-The-Money-finance-tracker/actions"><img src="https://github.com/NicholasSobchak/On-The-Money-finance-tracker/actions/workflows/ci.yml/badge.svg" alt="Build and Test"></a>
 </p>
 
 #
