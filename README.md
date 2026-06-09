@@ -18,11 +18,11 @@ On the money is a personal finance tracker built in C++. It uses a Java API and 
   - C++20
   - Java
   - Swift
-  - PostgreSQL
+  - [PostgreSQL](https://www.postgresql.org/docs/)
   - [Springboot](https://spring.io/guides/gs/spring-boot)
   - Docker
   - CMake
-  - Gradle
+  - [Gradle](https://docs.gradle.org/current/userguide/userguide.html)
   - clang (tidy/format)
 
 ### Project Structure
@@ -65,13 +65,7 @@ Setup Instructions:
 
 This project uses CMake + vcpkg (manifest mode via `vcpkg.json`) to fetch/build dependencies.
 
-#### 1) Install dependencies
-
-```bash
-~/vcpkg/vcpkg install
-```
-
-#### 2) Configure
+#### Configure
 
 From the project root:
 
@@ -80,20 +74,29 @@ cmake -S . -B build \
   -DCMAKE_TOOLCHAIN_FILE=~/vcpkg/scripts/buildsystems/vcpkg.cmake
 ```
 
-#### 3) Build
+#### Build
 
 ```bash
 cmake --build build -j
 ```
 
-### Java-C++ DTO
+### Run
+```bash
+./build/src/finance
+./build/tests/run_tests
+
+# cd java-api
+./gradlew build 
+./gradlew bootRun
+./gradlew test
+```
+
+### Java-to-C++ DTO
 ```
 ACCOUNT_NAME,TRANSACTION_TYPE,AMOUNT,DESCRIPTION
 
 # Example
-
 Schwab,Deposit,1250.00,Investment
 Robinhood,Withdraw,45.50,Lunch
 END
 ```
-
