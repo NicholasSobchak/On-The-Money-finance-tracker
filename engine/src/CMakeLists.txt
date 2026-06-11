@@ -14,4 +14,9 @@ add_executable(finance
 
 target_link_libraries(finance PRIVATE
   engine_core
+  nlohmann_json::nlohmann_json
+)
+
+target_link_libraries(engine_core PUBLIC
+  nlohmann_json::nlohmann_json
 )

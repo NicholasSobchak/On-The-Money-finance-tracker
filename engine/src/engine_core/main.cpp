@@ -1,5 +1,6 @@
 #include "portfolio.h"
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <sstream>
 #include <string>
 
@@ -13,7 +14,29 @@
  *  it is not worth the time when it won't even serve it's purpose (high-performance)
  *  5. I am going with the subprocess
  */
+using json = nlohmann::json;
 
+namespace
+{
+json handleGetNetWorth(Portfolio &portfolio, const json &req)
+{
+  return {{"netWorth", portfolio.netWorth()}};
+}
+
+json handleGetTotalAssests(Portfolio &portfolio, const json &req)
+{
+  return {{"totalAssets", portfolio.totalAssets()}};
+}
+
+// TODO: continue handlers for getters
+
+json handleAddAccount(Portfolio &portfolio, const json &req)
+{
+  portfolio.addAccount(Account(req["name"], req["balance"], req["accType"]));
+  return {{"status", "ok"}};
+}
+
+} // end namespace
 int main()
 {
   std::ios_base::sync_with_stdio(false);
@@ -21,57 +44,6 @@ int main()
 
   Portfolio portfolio;
   std::string line;
-
-  // read data via CSV
-  while (std::getline(std::cin, line))
-  {
-    if (line == "END" || line.empty())
-    {
-      break;
-    }
-
-    std::stringstream ss(line);
-    std::string accountName, typeStr, amountStr, description;
-
-    // Parse CSV tokens: ACCOUNT_NAME,TYPE,AMOUNT,DESCRIPTION
-    if (std::getline(ss, accountName, ',') && std::getline(ss, typeStr, ',') &&
-        std::getline(ss, amountStr, ',') && std::getline(ss, description))
-    {
-      try
-      {
-        double amount = std::stod(amountStr);
-
-        // Map the text token to your C++ TransactionType enum
-        TransactionType type =
-            (typeStr == "Deposit") ? TransactionType::Deposit : TransactionType::Withdraw;
-
-        // Push directly into your existing C++ object architecture
-        Account *account = portfolio.getAccountByName(accountName);
-        if (!account)
-        {
-          portfolio.addAccount(Account(accountName, 0.0, AccountType::Checking));
-          account = portfolio.getAccountByName(accountName);
-        }
-
-        if (type == TransactionType::Deposit)
-        {
-          account->deposit(amount, description);
-        }
-        else
-        {
-          account->withdraw(amount, description);
-        }
-      }
-      catch (const std::invalid_argument &e)
-      {
-        // Ignore malformed numeric strings to prevent engine crashes
-        continue;
-      }
-    }
-  }
-
-  // Output the final calculation down the stdout pipe for Java to catch
-  std::cout << portfolio.netWorth() << "\n";
 
   return 0;
 }
