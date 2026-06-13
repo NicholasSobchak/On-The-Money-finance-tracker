@@ -2,6 +2,7 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 /*
@@ -18,6 +19,48 @@ using json = nlohmann::json;
 
 namespace
 {
+AccountType accountTypeFromString(const std::string &s)
+{
+  if (s == "Checking")
+  {
+    return AccountType::Checking;
+  }
+  if (s == "Savings")
+  {
+    return AccountType::Savings;
+  }
+  if (s == "CreditCard")
+  {
+    return AccountType::CreditCard;
+  }
+  if (s == "Investment")
+  {
+    return AccountType::Investment;
+  }
+  if (s == "Loan")
+  {
+    return AccountType::Loan;
+  }
+  throw std::invalid_argument("unknown account type: " + s);
+}
+
+TransactionType transactionFromString(const std::string &s)
+{
+  if (s == "Deposit")
+  {
+    return TransactionType::Deposit;
+  }
+  if (s == "Withdraw")
+  {
+    return TransactionType::Withdraw;
+  }
+  if (s == "Transfer")
+  {
+    return TransactionType::Transfer;
+  }
+  throw std::invalid_argument("unknown account type: " + s);
+}
+
 json handleGetNetWorth(Portfolio &portfolio, const json &req)
 {
   return {{"netWorth", portfolio.netWorth()}};
@@ -28,15 +71,75 @@ json handleGetTotalAssests(Portfolio &portfolio, const json &req)
   return {{"totalAssets", portfolio.totalAssets()}};
 }
 
-// TODO: continue handlers for getters
+json handleTotalLiabilities(Portfolio &portfolio, const json &req)
+{
+  return {{"totalLiabilities", portfolio.totalLiabilities()}};
+}
+
+json handleInTheRed(Portfolio &portfolio, const json &req)
+{
+  return {{"inTheRed", portfolio.inTheRed()}};
+}
+
+json handleInTheGreen(Portfolio &portfolio, const json &req)
+{
+  return {{"inTheGreen", portfolio.inTheGreen()}};
+}
 
 json handleAddAccount(Portfolio &portfolio, const json &req)
 {
-  portfolio.addAccount(Account(req["name"], req["balance"], req["accType"]));
+  portfolio.addAccount(Account(req["name"], req["balance"], accountTypeFromString(req["accType"])));
   return {{"status", "ok"}};
 }
 
+json handleGetAccountByName(Portfolio &portfolio, const json &req)
+{
+  Account *account = portfolio.getAccountByName(req["name"]);
+  if (!account)
+  {
+    return {{"status", "error"}, {"message", "account not found"}};
+  }
+  return {
+      {"status", "ok"},
+      {"id", account->getId()},
+      {"name", account->getName()},
+      {"balance", account->getBalance()},
+      {"type", static_cast<int>(account->getType())}};
+}
+
+json handleTransfer(Portfolio &portfolio, const json &req)
+{
+  std::chrono::sys_days date =
+      req.contains("date")
+          ? std::chrono::sys_days{std::chrono::days{req["date"].get<int>()}}
+          : std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now());
+  Transaction t =
+      portfolio.transfer(req["from_account_id"], req["to_account_id"], req["amount"], date);
+  return {
+      {"status", "ok"},
+      {"id", t.getFromAccountId()},
+      {"amount", t.getAmount()},
+      {"type", static_cast<int>(t.getType())},
+      {"date", static_cast<int>(t.getDate().time_since_epoch().count())}};
+}
+
+json handleGetAccount(Portfolio &portfolio, const json &req)
+{
+  Account *account = portfolio.getAccount(req["id"]);
+  if (!account)
+  {
+    return {{"status", "error"}, {"message", "account not found"}};
+  }
+  return {
+      {"status", "ok"},
+      {"id", account->getId()},
+      {"name", account->getName()},
+      {"balance", account->getBalance()},
+      {"type", static_cast<int>(account->getType())}};
+}
+
 } // end namespace
+
 int main()
 {
   std::ios_base::sync_with_stdio(false);
@@ -44,6 +147,13 @@ int main()
 
   Portfolio portfolio;
   std::string line;
+
+  while (std::getline(std::cin, line))
+  {
+    auto req = json::parse(line);
+    // then call handler based on req["action"]
+    break;
+  }
 
   return 0;
 }
