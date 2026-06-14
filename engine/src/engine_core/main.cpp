@@ -1,9 +1,11 @@
 #include "portfolio.h"
+#include <functional>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 
 /*
  * OK, so i chose to go with a subprocess through C++ for a couple of reasons.
@@ -177,11 +179,49 @@ int main()
   Portfolio portfolio;
   std::string line;
 
+  std::unordered_map<std::string, std::function<json(Portfolio &, const json &)>> handlers = {
+      {"getNetWorth", handleGetNetWorth},
+      {"getTotalAssets", handleGetTotalAssests},
+      {"totalLiabilities", handleTotalLiabilities},
+      {"inTheRed", handleInTheRed},
+      {"inTheGreen", handleInTheGreen},
+      {"addAccount", handleAddAccount},
+      {"getAccount", handleGetAccount},
+      {"getAccountByName", handleGetAccountByName},
+      {"transfer", handleTransfer},
+      {"getTransactions", handleGetTransactions},
+      {"netWorthAt", handleNetWorthAt},
+  };
+
   while (std::getline(std::cin, line))
   {
-    auto req = json::parse(line);
-    // then call handler based on req["action"]
-    break;
+    try
+    {
+      auto req = json::parse(line);
+      auto action = req["action"].get<std::string>();
+
+      auto it = handlers.find(action);
+      if (it != handlers.end())
+      {
+        std::cout << it->second(portfolio, req).dump() << "\n";
+      }
+      else
+      {
+        std::cout << json({{"status", "error"}, {"message", "unknown action: " + action}}).dump()
+                  << "\n";
+      }
+    }
+    catch (const std::exception &e)
+    {
+      try
+      {
+        std::cout << json({{"status", "error"}, {"message", e.what()}}).dump() << "\n";
+      }
+      catch (...)
+      {
+        std::cout << "{\"status\":\"error\",\"message\":\"internal error\"}\n";
+      }
+    }
   }
 
   return 0;
