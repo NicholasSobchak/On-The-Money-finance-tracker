@@ -1,6 +1,18 @@
-# C++ Engine JSON Protocol
+# C++ Engine
 
-The C++ engine communicates over stdin/stdout via newline-delimited JSON. Each request has an `"action"` field, and the action name determines the handler. All dates are serialized as integer days since Unix epoch (1970-01-01).
+The C++ engine is a subprocess that handles all financial computations (portfolio tracking, account management, transactions). It communicates with the Java API over stdin/stdout via newline-delimited JSON.
+
+## Build
+
+```bash
+cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=~/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build build -j
+./build/tests/run_tests
+```
+
+## JSON Protocol
+
+Each request has an `"action"` field that routes to the appropriate handler. All dates are serialized as integer days since Unix epoch (1970-01-01).
 
 ## Enums
 

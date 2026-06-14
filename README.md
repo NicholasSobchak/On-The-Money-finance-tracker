@@ -97,4 +97,4 @@ cmake --build build -j
 
 ### C++ Engine JSON Protocol
 
-See [`engine/docs/engine-protocol.md`](engine/docs/engine-protocol.md) for the complete JSON request/response specification.
+See [`engine/README.md`](engine/README.md) for the complete JSON request/response specification.
