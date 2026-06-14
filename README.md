@@ -54,7 +54,11 @@ Setup Instructions:
 
 1.  Install `pre-commit`: If you don't have it already, install `pre-commit`:
     ```bash
-    sudo apt install pre-commit
+    # ubuntu
+    sudo apt install pre-commit 
+
+    # fedora 
+    sudo dnf install pre-commit
     ```
 2.  Install Git Hooks: From the project root directory, install the Git hooks:
     ```bash
@@ -91,12 +95,6 @@ cmake --build build -j
 ./gradlew test
 ```
 
-### Java-to-C++ DTO
-```
-ACCOUNT_NAME,TRANSACTION_TYPE,AMOUNT,DESCRIPTION
+### C++ Engine JSON Protocol
 
-# Example
-Schwab,Deposit,1250.00,Investment
-Robinhood,Withdraw,45.50,Lunch
-END
-```
+See [`engine/docs/engine-protocol.md`](engine/docs/engine-protocol.md) for the complete JSON request/response specification.

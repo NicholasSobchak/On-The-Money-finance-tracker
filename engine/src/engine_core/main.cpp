@@ -138,6 +138,35 @@ json handleGetAccount(Portfolio &portfolio, const json &req)
       {"type", static_cast<int>(account->getType())}};
 }
 
+json handleGetTransactions(Portfolio &portfolio, const json &req)
+{
+  auto start = std::chrono::sys_days{std::chrono::days{req["start"].get<int>()}};
+  auto end = std::chrono::sys_days{std::chrono::days{req["end"].get<int>()}};
+  auto transactions = portfolio.getTransactions(start, end);
+
+  json arr = json::array();
+  for (const auto *t : transactions)
+  {
+    json obj = {
+        {"from_account_id", t->getFromAccountId()},
+        {"amount", t->getAmount()},
+        {"type", static_cast<int>(t->getType())},
+        {"description", t->getDescription()},
+        {"date", static_cast<int>(t->getDate().time_since_epoch().count())}};
+    if (t->getToAccountId().has_value())
+    {
+      obj["to_account_id"] = t->getToAccountId().value();
+    }
+    arr.push_back(obj);
+  }
+  return {{"status", "ok"}, {"transactions", arr}};
+}
+
+json handleNetWorthAt(Portfolio &portfolio, const json &req)
+{
+  auto date = std::chrono::sys_days{std::chrono::days{req["date"].get<int>()}};
+  return {{"netWorth", portfolio.netWorthAt(date)}};
+}
 } // end namespace
 
 int main()
