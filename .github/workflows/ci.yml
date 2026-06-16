@@ -81,5 +81,4 @@ jobs:
         distribution: 'temurin'
 
     - name: Build Java API
-      working-directory: java-api
       run: ./gradlew build
