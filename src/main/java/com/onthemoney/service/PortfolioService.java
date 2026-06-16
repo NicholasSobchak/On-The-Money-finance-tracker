@@ -2,13 +2,10 @@ package com.onthemoney.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.onthemoney.entity.AccountEntity;
 import com.onthemoney.entity.TransactionEntity;
 import com.onthemoney.repository.AccountRepository;
 import com.onthemoney.repository.TransactionRepository;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -36,12 +33,42 @@ public class PortfolioService {
     this.transactionRepo = transactionRepo;
   }
 
-  @PostConstruct
-  public void startEngine() throws IOException {
+  // ── Java computations (simple math, no engine needed) ──────
+
+  public double netWorth() {
+    return accountRepo.findAll().stream().mapToDouble(AccountEntity::getBalance).sum();
+  }
+
+  public double totalAssets() {
+    return accountRepo.findAll().stream()
+        .filter(a -> a.getBalance() > 0)
+        .mapToDouble(AccountEntity::getBalance)
+        .sum();
+  }
+
+  public double totalLiabilities() {
+    return accountRepo.findAll().stream()
+        .filter(a -> a.getBalance() < 0)
+        .mapToDouble(AccountEntity::getBalance)
+        .sum();
+  }
+
+  public boolean inTheRed() {
+    return netWorth() < 0;
+  }
+
+  public boolean inTheGreen() {
+    return netWorth() >= 0;
+  }
+
+  // ── Engine for heavy computation (lazy-start) ──────────────
+
+  private synchronized void ensureEngineStarted() throws IOException {
+    if (engine != null && engine.isAlive()) return;
+
     var enginePath = Path.of("..", "engine", "build", "src", "finance").toAbsolutePath().normalize();
     if (!enginePath.toFile().exists()) {
-      log.warn("Engine binary not found at {}. Build the engine first.", enginePath);
-      return;
+      throw new IOException("Engine binary not found at " + enginePath + ". Build the engine first.");
     }
     var pb = new ProcessBuilder(enginePath.toString());
     pb.directory(enginePath.getParent().toFile());
@@ -58,12 +85,8 @@ public class PortfolioService {
     log.info("C++ engine started (pid={})", engine.pid());
   }
 
-  // ── Pipe communication ──────────────────────────────────────
-
   public synchronized JsonNode send(JsonNode request) throws IOException {
-    if (engine == null || !engine.isAlive()) {
-      throw new IOException("engine is not running");
-    }
+    ensureEngineStarted();
     toEngine.write(request.toString());
     toEngine.newLine();
     toEngine.flush();
@@ -75,46 +98,28 @@ public class PortfolioService {
     return mapper.readTree(line);
   }
 
-  // ── Computation (sends data + action to engine) ────────────
-
-  private JsonNode compute(String action) throws IOException {
-    var accounts = accountRepo.findAll();
+  public JsonNode projectRetirement(double initialBalance, double monthlyContribution,
+                                    double returnRate, int years, int simulations) throws IOException {
     var request = mapper.createObjectNode();
-    request.put("action", action);
-    request.set("accounts", mapper.valueToTree(accounts));
+    request.put("action", "projectRetirement");
+    request.put("initialBalance", initialBalance);
+    request.put("monthlyContribution", monthlyContribution);
+    request.put("returnRate", returnRate);
+    request.put("years", years);
+    request.put("simulations", simulations);
     return send(request);
   }
 
-  public JsonNode getNetWorth() throws IOException {
-    return compute("getNetWorth");
-  }
+  // ── DB operations ──────────────────────────────────────────
 
-  public JsonNode getTotalAssets() throws IOException {
-    return compute("getTotalAssets");
+  public AccountEntity updateAccount(Long id, String name, Double balance, String accType) {
+    var account = accountRepo.findById(id).orElse(null);
+    if (account == null) return null;
+    if (name != null) account.setName(name);
+    if (balance != null) account.setBalance(balance);
+    if (accType != null) account.setAccType(accType);
+    return accountRepo.save(account);
   }
-
-  public JsonNode getTotalLiabilities() throws IOException {
-    return compute("totalLiabilities");
-  }
-
-  public JsonNode getInTheRed() throws IOException {
-    return compute("inTheRed");
-  }
-
-  public JsonNode getInTheGreen() throws IOException {
-    return compute("inTheGreen");
-  }
-
-  public JsonNode getNetWorthAt(LocalDate date) throws IOException {
-    var accounts = accountRepo.findAll();
-    var request = mapper.createObjectNode();
-    request.put("action", "netWorthAt");
-    request.put("date", (int) date.toEpochDay());
-    request.set("accounts", mapper.valueToTree(accounts));
-    return send(request);
-  }
-
-  // ── DB operations (Java writes to PostgreSQL directly) ─────
 
   public AccountEntity addAccount(String name, double balance, String accType) {
     var account = new AccountEntity();
@@ -139,9 +144,7 @@ public class PortfolioService {
   public TransactionEntity transfer(Long fromAccountId, Long toAccountId, double amount, LocalDate date) {
     var from = accountRepo.findById(fromAccountId).orElse(null);
     var to = accountRepo.findById(toAccountId).orElse(null);
-    if (from == null || to == null) {
-      return null;
-    }
+    if (from == null || to == null) return null;
 
     from.setBalance(from.getBalance() - amount);
     to.setBalance(to.getBalance() + amount);
@@ -162,17 +165,16 @@ public class PortfolioService {
     return transactionRepo.findByDateBetween(start, end);
   }
 
-  // ── Engine lifecycle ───────────────────────────────────────
+  public void deleteAllAccounts() {
+    transactionRepo.deleteAll();
+    accountRepo.deleteAll();
+  }
+
+  public void deleteAccountById(Long id) {
+    accountRepo.deleteById(id);
+  }
 
   public boolean isRunning() {
     return engine != null && engine.isAlive();
-  }
-
-  @PreDestroy
-  public void stopEngine() {
-    if (engine != null && engine.isAlive()) {
-      engine.destroyForcibly();
-      log.info("C++ engine stopped");
-    }
   }
 }

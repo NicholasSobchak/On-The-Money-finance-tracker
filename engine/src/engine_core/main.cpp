@@ -1,104 +1,99 @@
-#include "portfolio.h"
-#include <functional>
+/*
+ * C++ Engine — Monte Carlo retirement projection
+ *
+ * This is the heavy-lifting component. For simple portfolio math
+ * (net worth, total assets, etc.), Java handles it directly.
+ * This engine is only used for computations that benefit from
+ * C++ speed — like running 10,000+ market simulations.
+ *
+ * Protocol: newline-delimited JSON over stdin/stdout.
+ *   Request:  {"action":"projectRetirement", "initialBalance":..., ...}
+ *   Response: {"median":..., "worst10":..., "best10":..., "percentiles":[...]}
+ */
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <iomanip>
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-#include <unordered_map>
+#include <random>
+#include <vector>
 
 using json = nlohmann::json;
 
 namespace
 {
-AccountType accountTypeFromString(const std::string &s)
+
+double monteCarloPercentile(std::vector<double> &results, double p)
 {
-  if (s == "Checking")
+  if (results.empty())
   {
-    return AccountType::Checking;
+    return 0.0;
   }
-  if (s == "Savings")
+  size_t idx = static_cast<size_t>(std::round(p / 100.0 * (results.size() - 1)));
+  return results[idx];
+}
+
+json handleProjectRetirement(const json &req)
+{
+  double initialBalance = req["initialBalance"].get<double>();
+  double monthlyContribution = req["monthlyContribution"].get<double>();
+  double returnRate = req["returnRate"].get<double>(); // e.g. 0.07 for 7%
+  int years = req["years"].get<int>();
+  int simulations = req["simulations"].get<int>();
+
+  double annualContribution = monthlyContribution * 12;
+  double volatility = 0.10; // ~10% annual std dev for stock market
+
+  std::mt19937_64 rng(std::random_device{}());
+  std::normal_distribution<double> noise(0.0, volatility);
+
+  std::vector<double> results;
+  results.reserve(simulations);
+
+  for (int s = 0; s < simulations; ++s)
   {
-    return AccountType::Savings;
+    double balance = initialBalance;
+    for (int y = 0; y < years; ++y)
+    {
+      double annualReturn = returnRate + noise(rng);
+      balance = balance * (1.0 + annualReturn) + annualContribution;
+    }
+    results.push_back(balance);
   }
-  if (s == "CreditCard")
+
+  std::sort(results.begin(), results.end());
+
+  // return number of results sorted, statistics
+  auto worst10 = results[static_cast<size_t>(simulations * 0.10)];
+  auto median = results[static_cast<size_t>(simulations * 0.50)];
+  auto best10 = results[static_cast<size_t>(simulations * 0.90)];
+  auto mean = std::accumulate(results.begin(), results.end(), 0.0) / simulations;
+
+  json percentiles = json::array();
+  for (double p = 5.0; p <= 95.0; p += 5.0)
   {
-    return AccountType::CreditCard;
+    percentiles.push_back(monteCarloPercentile(results, p));
   }
-  if (s == "Investment")
-  {
-    return AccountType::Investment;
-  }
-  if (s == "Loan")
-  {
-    return AccountType::Loan;
-  }
-  throw std::invalid_argument("unknown account type: " + s);
+
+  return {
+      {"status", "ok"},
+      {"worst10", worst10},
+      {"median", median},
+      {"best10", best10},
+      {"mean", mean},
+      {"simulations", simulations},
+      {"percentiles", percentiles},
+  };
 }
 
-void loadAccounts(Portfolio &portfolio, const json &req)
-{
-  portfolio.clear();
-  Account::resetIdCounter();
-  for (const auto &a : req["accounts"])
-  {
-    portfolio.addAccount(Account(a["name"], a["balance"], accountTypeFromString(a["accType"])));
-  }
-}
-
-json handleGetNetWorth(Portfolio &portfolio, const json &req)
-{
-  loadAccounts(portfolio, req);
-  return {{"netWorth", portfolio.netWorth()}};
-}
-
-json handleGetTotalAssets(Portfolio &portfolio, const json &req)
-{
-  loadAccounts(portfolio, req);
-  return {{"totalAssets", portfolio.totalAssets()}};
-}
-
-json handleTotalLiabilities(Portfolio &portfolio, const json &req)
-{
-  loadAccounts(portfolio, req);
-  return {{"totalLiabilities", portfolio.totalLiabilities()}};
-}
-
-json handleInTheRed(Portfolio &portfolio, const json &req)
-{
-  loadAccounts(portfolio, req);
-  return {{"inTheRed", portfolio.inTheRed()}};
-}
-
-json handleInTheGreen(Portfolio &portfolio, const json &req)
-{
-  loadAccounts(portfolio, req);
-  return {{"inTheGreen", portfolio.inTheGreen()}};
-}
-
-json handleNetWorthAt(Portfolio &portfolio, const json &req)
-{
-  loadAccounts(portfolio, req);
-  auto date = std::chrono::sys_days{std::chrono::days{req["date"].get<int>()}};
-  return {{"netWorth", portfolio.netWorthAt(std::chrono::system_clock::time_point(date))}};
-}
 } // namespace
 
 int main()
 {
   std::ios_base::sync_with_stdio(false);
   std::cin.tie(nullptr);
-
-  Portfolio portfolio;
-
-  std::unordered_map<std::string, std::function<json(Portfolio &, const json &)>> handlers = {
-      {"getNetWorth", handleGetNetWorth},
-      {"getTotalAssets", handleGetTotalAssets},
-      {"totalLiabilities", handleTotalLiabilities},
-      {"inTheRed", handleInTheRed},
-      {"inTheGreen", handleInTheGreen},
-      {"netWorthAt", handleNetWorthAt},
-  };
 
   std::string line;
   while (std::getline(std::cin, line))
@@ -108,10 +103,9 @@ int main()
       auto req = json::parse(line);
       auto action = req["action"].get<std::string>();
 
-      auto it = handlers.find(action);
-      if (it != handlers.end())
+      if (action == "projectRetirement")
       {
-        std::cout << it->second(portfolio, req).dump() << "\n" << std::flush;
+        std::cout << handleProjectRetirement(req).dump() << "\n" << std::flush;
       }
       else
       {

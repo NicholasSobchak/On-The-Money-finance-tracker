@@ -36,33 +36,47 @@ public class DashboardController {
   // ── Computation endpoints ──────────────────────────────────
 
   @GetMapping("/net-worth")
-  public JsonNode getNetWorth() throws IOException {
-    return portfolioService.getNetWorth();
+  public JsonNode getNetWorth() {
+    var result = mapper.createObjectNode();
+    result.put("netWorth", portfolioService.netWorth());
+    return result;
   }
 
   @GetMapping("/total-assets")
-  public JsonNode getTotalAssets() throws IOException {
-    return portfolioService.getTotalAssets();
+  public JsonNode getTotalAssets() {
+    var result = mapper.createObjectNode();
+    result.put("totalAssets", portfolioService.totalAssets());
+    return result;
   }
 
   @GetMapping("/total-liabilities")
-  public JsonNode getTotalLiabilities() throws IOException {
-    return portfolioService.getTotalLiabilities();
+  public JsonNode getTotalLiabilities() {
+    var result = mapper.createObjectNode();
+    result.put("totalLiabilities", portfolioService.totalLiabilities());
+    return result;
   }
 
   @GetMapping("/in-the-red")
-  public JsonNode getInTheRed() throws IOException {
-    return portfolioService.getInTheRed();
+  public JsonNode getInTheRed() {
+    var result = mapper.createObjectNode();
+    result.put("inTheRed", portfolioService.inTheRed());
+    return result;
   }
 
   @GetMapping("/in-the-green")
-  public JsonNode getInTheGreen() throws IOException {
-    return portfolioService.getInTheGreen();
+  public JsonNode getInTheGreen() {
+    var result = mapper.createObjectNode();
+    result.put("inTheGreen", portfolioService.inTheGreen());
+    return result;
   }
 
-  @GetMapping("/net-worth-at")
-  public JsonNode getNetWorthAt(@RequestParam(defaultValue = "1970-01-01") String date) throws IOException {
-    return portfolioService.getNetWorthAt(LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE));
+  @PostMapping("/project")
+  public JsonNode projectRetirement(@RequestParam(defaultValue = "10000") double initialBalance,
+                                     @RequestParam(defaultValue = "500") double monthlyContribution,
+                                     @RequestParam(defaultValue = "7") double returnRate,
+                                     @RequestParam(defaultValue = "30") int years,
+                                     @RequestParam(defaultValue = "10000") int simulations) throws IOException {
+    return portfolioService.projectRetirement(initialBalance, monthlyContribution, returnRate / 100, years, simulations);
   }
 
   // ── Account endpoints ──────────────────────────────────────
@@ -93,6 +107,39 @@ public class DashboardController {
   @GetMapping("/accounts/{id}")
   public JsonNode getAccountById(@PathVariable Long id) {
     var account = portfolioService.getAccountById(id);
+    if (account == null) {
+      var err = mapper.createObjectNode();
+      err.put("status", "error");
+      err.put("message", "account not found");
+      return err;
+    }
+    return mapper.valueToTree(account);
+  }
+
+  // ── Delete endpoints ──────────────────────────────────────
+
+  @DeleteMapping("/accounts")
+  public JsonNode deleteAllAccounts() {
+    portfolioService.deleteAllAccounts();
+    var ok = mapper.createObjectNode();
+    ok.put("status", "ok");
+    return ok;
+  }
+
+  @DeleteMapping("/accounts/{id}")
+  public JsonNode deleteAccountById(@PathVariable Long id) {
+    portfolioService.deleteAccountById(id);
+    var ok = mapper.createObjectNode();
+    ok.put("status", "ok");
+    return ok;
+  }
+
+  @PutMapping("/accounts/{id}")
+  public JsonNode updateAccount(@PathVariable Long id,
+                                 @RequestParam(required = false) String name,
+                                 @RequestParam(required = false) Double balance,
+                                 @RequestParam(required = false) String accType) {
+    var account = portfolioService.updateAccount(id, name, balance, accType);
     if (account == null) {
       var err = mapper.createObjectNode();
       err.put("status", "error");

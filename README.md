@@ -7,19 +7,18 @@
 
 #
 ### Description
-On the money is a personal finance tracker built in C++. It uses a Java API and Springboot framework, and a IOS frontend app coded in Swift. 
+On the money is a personal finance tracker with a Java/Spring Boot API, PostgreSQL persistence, and a C++ engine for heavy computations.
 
 ### Features
-  - coming soon
+  - Coming soon
 
 # Building this project
 
 ### This project uses
   - C++20
-  - Java
+  - Java 17, Spring Boot 3.3
   - Swift
   - [PostgreSQL](https://www.postgresql.org/docs/)
-  - [Springboot](https://spring.io/guides/gs/spring-boot)
   - Docker
   - CMake
   - [Gradle](https://docs.gradle.org/current/userguide/userguide.html)
@@ -36,13 +35,18 @@ On the money is a personal finance tracker built in C++. It uses a Java API and 
 │   ├── tests/
 │   │   └── unit/
 │   └── vcpkg_installed/
-├── java-api/
-│   └── src/
-│       ├── main/
-│       │   ├── java/
-│       │   └── resources/
-│       └── tests/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   └── resources/
+│   └── test/
+├── gradle/
+├── build.gradle
+├── gradlew
+├── gradlew.bat
 ├── scripts/
+├── docker-compose.yml
+└── On-The-Money_logo.png
 ```
 
 ### Code Formatting (Pre-commit Hook)
@@ -60,59 +64,77 @@ Setup Instructions:
     # fedora 
     sudo dnf install pre-commit
     ```
-2.  Install Git Hooks: From the project root directory, install the Git hooks:
+2.  Install Git Hooks: From the project root, install the Git hooks:
     ```bash
     pre-commit install
     ```
 
-### Build
+## Database
 
-This project uses CMake + vcpkg to fetch/build dependencies.
-
-#### Configure Engine
-
-From the `/engine` directory:
+Start PostgreSQL via Docker:
 
 ```bash
-cmake -S . -B build \
-  -DCMAKE_TOOLCHAIN_FILE=~/vcpkg/scripts/buildsystems/vcpkg.cmake
-```
-
-#### Then Build
-
-```bash
-cmake --build build -j
-```
-
-#### And Run
-
-From the project root:
-
-```bash
-./build/tests/run_tests
-```
-
-#### Build Java-API
-
-```bash
-./gradlew build
-
-# Start PostgreSQL (Docker)
 docker compose up -d
 ```
 
-#### And Run With
+The `accounts` and `transactions` tables are auto-created by Hibernate. To inspect:
+
 ```bash
+docker exec -it onthemoney-db psql -U app -d onthemoney
+\dt
+\q
+```
+
+## Build & Run
+
+### C++ Engine
+
+```bash
+cd engine
+cmake -S . -B build -DCMAKE_PREFIX_PATH="$(brew --prefix nlohmann-json);$(brew --prefix catch2)"
+cmake --build build -j
+./build/tests/run_tests
+```
+
+### Java API
+
+```bash
+# Build
+./gradlew build
+
+# Run
 ./gradlew bootRun
 
-# To run tests
+# Test (uses H2 in-memory DB, no PostgreSQL needed)
 ./gradlew test
 ```
 
-### JSON Protocol
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/` | Greeting |
+| `GET` | `/api/status` | Engine status (online/offline) |
+| `GET` | `/api/net-worth` | Total net worth |
+| `GET` | `/api/total-assets` | Sum of positive balances |
+| `GET` | `/api/total-liabilities` | Sum of negative balances |
+| `GET` | `/api/in-the-red` | Net worth negative? |
+| `GET` | `/api/in-the-green` | Net worth non-negative? |
+| `POST` | `/api/project` | Monte Carlo retirement projection |
+| `GET` | `/api/accounts` | All accounts (or `?name=Checking`) |
+| `GET` | `/api/accounts/{id}` | Account by ID |
+| `POST` | `/api/accounts?name=X&balance=Y&accType=Z` | Create account |
+| `PUT` | `/api/accounts/{id}?name=X&balance=Y&accType=Z` | Update account |
+| `DELETE` | `/api/accounts` | Delete all accounts + transactions |
+| `DELETE` | `/api/accounts/{id}` | Delete account by ID |
+| `POST` | `/api/transfers` | Transfer between accounts |
+| `GET` | `/api/transactions` | List transactions by date range |
+
+## JSON Protocol
 
 See [`engine/README.md`](engine/README.md) for the complete JSON response structure.
-See [`java-api/README.md`](java-api/README.md) for the complete JSON request/response specifications
+
+For the Java API endpoints, requests and responses use JSON body format. Simple computations (net worth, assets, liabilities) are computed directly in Java. The Monte Carlo projection (`POST /api/project`) delegates to the C++ engine.
 
 # API Example
 ...
