@@ -30,6 +30,24 @@ Response: {"netWorth":4800.0}\n
 
 Each write to stdin is flushed; each response on stdout is flushed. The protocol is strictly synchronous — one request in, one response out. The Java side locks (`synchronized`) to prevent concurrent access.
 
+## Database Visualization
+To see a visual of the database first run the docker image:
+
+```bash
+docker-compose up -d
+```
+Then access the database by running:
+
+```bash
+docker exec -it onthemoney-db psql -U app -d onthemoney
+
+# list tables
+\dt
+
+# quit
+\q
+```
+
 ## Endpoints
 
 | Method | Path | Description |
