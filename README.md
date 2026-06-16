@@ -52,7 +52,7 @@ CI uses `clang-format-17` by default.
 
 Setup Instructions:
 
-1.  Install `pre-commit`: If you don't have it already, install `pre-commit`:
+1.  If you don't have it already, install `pre-commit`:
     ```bash
     # ubuntu
     sudo apt install pre-commit 
@@ -67,34 +67,51 @@ Setup Instructions:
 
 ### Build
 
-This project uses CMake + vcpkg (manifest mode via `vcpkg.json`) to fetch/build dependencies.
+This project uses CMake + vcpkg to fetch/build dependencies.
 
-#### Configure
+#### Configure Engine
 
-From the project root:
+From the `/engine` directory:
 
 ```bash
 cmake -S . -B build \
   -DCMAKE_TOOLCHAIN_FILE=~/vcpkg/scripts/buildsystems/vcpkg.cmake
 ```
 
-#### Build
+#### Then Build
 
 ```bash
 cmake --build build -j
 ```
 
-### Run
+### And Run
+
+From the project root:
+
 ```bash
 ./build/src/finance
 ./build/tests/run_tests
+```
 
-# cd java-api
-./gradlew build 
+#### Build Java-API
+
+```bash
+./gradlew build
+```
+
+### And Run With
+```bash
 ./gradlew bootRun
 ./gradlew test
 ```
 
-### C++ Engine JSON Protocol
+### JSON Protocol
 
-See [`engine/README.md`](engine/README.md) for the complete JSON request/response specification.
+See [`engine/README.md`](engine/README.md) for the complete JSON response structure.
+See [`java-api/README.md`](java-api/README.md) for the complete JSON request/response specifications
+
+# API Example
+...
+
+# Use & Distribution
+_This project is for personal use only. It is not at all affiliated with any financial or institutional corporations. No gains or profits are made from this project, it is simply a tool for personal use._
