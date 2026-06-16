@@ -1,5 +1,7 @@
 # C++ Engine
 
+> **NOTE:** The engine binary is *not* available in CI or on fresh clones until built (see [Build](#build)). Without it, computation endpoints (`/api/net-worth`, etc.) return an error, but the Java API still starts and serves DB-backed endpoints (`/api/accounts`, `/api/transactions`) normally. The `GET /api/status` endpoint reports `"offline"` when the engine is missing.
+
 The C++ engine is a subprocess that handles all financial computations (portfolio tracking, account management, transactions). It communicates with the Java API over stdin/stdout via newline-delimited JSON.
 
 ## Design: Stateless Computation
