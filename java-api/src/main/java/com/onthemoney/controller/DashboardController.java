@@ -33,112 +33,100 @@ public class DashboardController {
     return status;
   }
 
-  @PostMapping("/engine")
-  public JsonNode handleEngineAction(@RequestBody JsonNode request) throws IOException {
-    if (!request.has("action")) {
-      var err = mapper.createObjectNode();
-      err.put("status", "error");
-      err.put("message", "missing 'action' field");
-      return err;
-    }
-    return portfolioService.send(request);
-  }
+  // ── Computation endpoints ──────────────────────────────────
 
   @GetMapping("/net-worth")
   public JsonNode getNetWorth() throws IOException {
-    var request = mapper.createObjectNode();
-    request.put("action", "getNetWorth");
-    return portfolioService.send(request);
+    return portfolioService.getNetWorth();
   }
 
   @GetMapping("/total-assets")
   public JsonNode getTotalAssets() throws IOException {
-    var request = mapper.createObjectNode();
-    request.put("action", "getTotalAssets");
-    return portfolioService.send(request);
+    return portfolioService.getTotalAssets();
   }
 
   @GetMapping("/total-liabilities")
   public JsonNode getTotalLiabilities() throws IOException {
-    var request = mapper.createObjectNode();
-    request.put("action", "totalLiabilities");
-    return portfolioService.send(request);
+    return portfolioService.getTotalLiabilities();
   }
 
   @GetMapping("/in-the-red")
   public JsonNode getInTheRed() throws IOException {
-    var request = mapper.createObjectNode();
-    request.put("action", "inTheRed");
-    return portfolioService.send(request);
+    return portfolioService.getInTheRed();
   }
 
   @GetMapping("/in-the-green")
   public JsonNode getInTheGreen() throws IOException {
-    var request = mapper.createObjectNode();
-    request.put("action", "inTheGreen");
-    return portfolioService.send(request);
-  }
-
-  @PostMapping("/accounts")
-  public JsonNode addAccount(@RequestParam String name,
-                             @RequestParam double balance,
-                             @RequestParam String accType) throws IOException {
-    var request = mapper.createObjectNode();
-    request.put("action", "addAccount");
-    request.put("name", name);
-    request.put("balance", balance);
-    request.put("accType", accType);
-    return portfolioService.send(request);
-  }
-
-  @GetMapping("/accounts")
-  public JsonNode getAccountByName(@RequestParam(defaultValue = "all") String name) throws IOException {
-    var request = mapper.createObjectNode();
-    request.put("action", "getAccountByName");
-    request.put("name", name);
-    return portfolioService.send(request);
-  }
-
-  @GetMapping("/accounts/{id}")
-  public JsonNode getAccountById(@PathVariable int id) throws IOException {
-    var request = mapper.createObjectNode();
-    request.put("action", "getAccount");
-    request.put("id", id);
-    return portfolioService.send(request);
-  }
-
-  @PostMapping("/transfers")
-  public JsonNode transfer(@RequestParam int fromAccountId,
-                           @RequestParam int toAccountId,
-                           @RequestParam double amount,
-                           @RequestParam(required = false) String date) throws IOException {
-    var request = mapper.createObjectNode();
-    request.put("action", "transfer");
-    request.put("from_account_id", fromAccountId);
-    request.put("to_account_id", toAccountId);
-    request.put("amount", amount);
-    if (date != null) {
-      request.put("date", (int) LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE).toEpochDay());
-    }
-    return portfolioService.send(request);
-  }
-
-  @GetMapping("/transactions")
-  public JsonNode getTransactions(@RequestParam(defaultValue = "1970-01-01") String start,
-                                  @RequestParam(defaultValue = "9999-12-31") String end) throws IOException {
-    var request = mapper.createObjectNode();
-    request.put("action", "getTransactions");
-    request.put("start", (int) LocalDate.parse(start, DateTimeFormatter.ISO_LOCAL_DATE).toEpochDay());
-    request.put("end", (int) LocalDate.parse(end, DateTimeFormatter.ISO_LOCAL_DATE).toEpochDay());
-    return portfolioService.send(request);
+    return portfolioService.getInTheGreen();
   }
 
   @GetMapping("/net-worth-at")
   public JsonNode getNetWorthAt(@RequestParam(defaultValue = "1970-01-01") String date) throws IOException {
-    var request = mapper.createObjectNode();
-    request.put("action", "netWorthAt");
-    request.put("date", (int) LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE).toEpochDay());
-    return portfolioService.send(request);
+    return portfolioService.getNetWorthAt(LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE));
   }
 
+  // ── Account endpoints ──────────────────────────────────────
+
+  @PostMapping("/accounts")
+  public JsonNode addAccount(@RequestParam String name,
+                              @RequestParam double balance,
+                              @RequestParam String accType) {
+    var account = portfolioService.addAccount(name, balance, accType);
+    return mapper.valueToTree(account);
+  }
+
+  @GetMapping("/accounts")
+  public JsonNode getAccounts(@RequestParam(defaultValue = "all") String name) {
+    if ("all".equals(name)) {
+      return mapper.valueToTree(portfolioService.getAllAccounts());
+    }
+    var account = portfolioService.getAccountByName(name);
+    if (account == null) {
+      var err = mapper.createObjectNode();
+      err.put("status", "error");
+      err.put("message", "account not found");
+      return err;
+    }
+    return mapper.valueToTree(account);
+  }
+
+  @GetMapping("/accounts/{id}")
+  public JsonNode getAccountById(@PathVariable Long id) {
+    var account = portfolioService.getAccountById(id);
+    if (account == null) {
+      var err = mapper.createObjectNode();
+      err.put("status", "error");
+      err.put("message", "account not found");
+      return err;
+    }
+    return mapper.valueToTree(account);
+  }
+
+  // ── Transfer endpoint ──────────────────────────────────────
+
+  @PostMapping("/transfers")
+  public JsonNode transfer(@RequestParam Long fromAccountId,
+                            @RequestParam Long toAccountId,
+                            @RequestParam double amount,
+                            @RequestParam(required = false) String date) {
+    LocalDate d = date != null ? LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE) : null;
+    var t = portfolioService.transfer(fromAccountId, toAccountId, amount, d);
+    if (t == null) {
+      var err = mapper.createObjectNode();
+      err.put("status", "error");
+      err.put("message", "account not found");
+      return err;
+    }
+    return mapper.valueToTree(t);
+  }
+
+  // ── Transaction endpoint ───────────────────────────────────
+
+  @GetMapping("/transactions")
+  public JsonNode getTransactions(@RequestParam(defaultValue = "1970-01-01") String start,
+                                  @RequestParam(defaultValue = "9999-12-31") String end) {
+    var startDate = LocalDate.parse(start, DateTimeFormatter.ISO_LOCAL_DATE);
+    var endDate = LocalDate.parse(end, DateTimeFormatter.ISO_LOCAL_DATE);
+    return mapper.valueToTree(portfolioService.getTransactions(startDate, endDate));
+  }
 }
