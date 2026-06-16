@@ -21,6 +21,7 @@ public:
   bool inTheGreen() const noexcept;
 
   void addAccount(const Account &account);
+  void clear() noexcept;
   Account *getAccountByName(const std::string &name) noexcept;
   Transaction transfer(
       int from_account_id,

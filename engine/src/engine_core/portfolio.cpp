@@ -39,6 +39,8 @@ void Portfolio::addAccount(const Account &account)
   m_accounts.push_back(std::make_unique<Account>(account));
 }
 
+void Portfolio::clear() noexcept { m_accounts.clear(); }
+
 Transaction Portfolio::transfer(
     int from_account_id, int to_account_id, double amount, std::chrono::sys_days date)
 {
