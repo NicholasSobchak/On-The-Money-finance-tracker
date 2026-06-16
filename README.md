@@ -89,7 +89,6 @@ cmake --build build -j
 From the project root:
 
 ```bash
-./build/src/finance
 ./build/tests/run_tests
 ```
 
