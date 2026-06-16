@@ -13,20 +13,6 @@ Spring Boot 3.3 REST API that powers On The Money. It manages data in PostgreSQL
 | **Jackson** | JSON serialization/deserialization (`ObjectMapper`, `JsonNode`, `valueToTree`) |
 | **JUnit 5 + Spring Boot Test** | Integration testing with full application context loading |
 
-## Architecture
-
-```
-┌──────────┐     HTTP      ┌──────────────┐     stdin/stdout     ┌──────────────┐
-│  Client   │ ──────────►  │  Java API    │ ──────────────────►  │  C++ Engine   │
-│ (curl/UI) │ ◄──────────  │  (Spring)    │ ◄──────────────────  │  (stateless)  │
-└──────────┘               │              │     JSON lines       │              │
-                           │  ┌────────┐  │                      │  Computes:   │
-                           │  │ Postgres│  │                      │  netWorth    │
-                           │  │ (JPA)   │  │                      │  totalAssets │
-                           │  └────────┘  │                      │  inTheRed    │
-                           └──────────────┘                      └──────────────┘
-```
-
 ### Data flow
 
 1. **Mutations** (`POST /api/accounts`, `POST /api/transfers`) — Java writes directly to PostgreSQL via JPA. The engine is not involved.
@@ -43,18 +29,6 @@ Response: {"netWorth":4800.0}\n
 ```
 
 Each write to stdin is flushed; each response on stdout is flushed. The protocol is strictly synchronous — one request in, one response out. The Java side locks (`synchronized`) to prevent concurrent access.
-
-The engine is **stateless** — it processes the accounts sent with each request and forgets them immediately. All persistent state lives in PostgreSQL.
-
-## Run
-
-```bash
-# Start PostgreSQL (Docker)
-docker compose up -d
-
-# Build and run the API
-./gradlew bootRun
-```
 
 ## Endpoints
 
