@@ -19,22 +19,14 @@ For a personal finance tracker with at most hundreds of accounts/transactions, t
 
 ## Transport Protocol
 
-The engine reads one **request** per line from **stdin**, processes it, and writes one **response** per line to **stdout**. Every message must be a single line ending in `\n`, and every response must be flushed immediately.
+The engine reads one **request** per line from **stdin**, processes it, and writes one **response** per line to **stdout**. Every message must be a single line ending in `\n`, and every response must be flushed immediately using `std::flush`.
 
 ```
-stdin  ──►  {"action":"getNetWorth"}\n
-stdout ◄──  {"netWorth":1300.0}\n
+stdin  >>  {"action":"getNetWorth"}\n
+stdout <<  {"netWorth":1300.0}\n
 ```
 
 If the response is not flushed, the Java side blocks forever waiting for it. Each request gets exactly one response before the next request is read — the protocol is strictly synchronous (the Java `send()` method is `synchronized`).
-
-## Build
-
-```bash
-cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=~/vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build build -j
-./build/tests/run_tests
-```
 
 ## JSON Protocol
 
