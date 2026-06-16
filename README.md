@@ -84,7 +84,7 @@ cmake -S . -B build \
 cmake --build build -j
 ```
 
-### And Run
+#### And Run
 
 From the project root:
 
@@ -96,11 +96,16 @@ From the project root:
 
 ```bash
 ./gradlew build
+
+# Start PostgreSQL (Docker)
+docker compose up -d
 ```
 
-### And Run With
+#### And Run With
 ```bash
 ./gradlew bootRun
+
+# To run tests
 ./gradlew test
 ```
 
