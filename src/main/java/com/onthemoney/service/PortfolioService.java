@@ -66,7 +66,7 @@ public class PortfolioService {
   private synchronized void ensureEngineStarted() throws IOException {
     if (engine != null && engine.isAlive()) return;
 
-    var enginePath = Path.of("..", "engine", "build", "src", "finance").toAbsolutePath().normalize();
+    var enginePath = Path.of("engine", "build", "src", "finance").toAbsolutePath().normalize();
     if (!enginePath.toFile().exists()) {
       throw new IOException("Engine binary not found at " + enginePath + ". Build the engine first.");
     }

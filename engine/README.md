@@ -4,12 +4,29 @@ The C++ engine handles **heavy computations that benefit from C++ speed**. Simpl
 
 > **NOTE:** The engine binary is optional. Without it, the Java API still works for all DB and simple computation endpoints. Only heavy computation endpoints (`POST /api/project`) will return an error.
 
-## Build
+## Build & Test
 
 ```bash
 cmake -S . -B build -DCMAKE_PREFIX_PATH="$(brew --prefix nlohmann-json);$(brew --prefix catch2)"
 cmake --build build -j
 ./build/tests/run_tests
+```
+
+## Structure
+
+```
+engine/
+├── include/
+│   └── engine_core.h          # Monte Carlo API (testable)
+├── src/
+│   ├── CMakeLists.txt
+│   └── engine_core/
+│       ├── main.cpp           # I/O loop, delegates to engine_core
+│       └── engine_core.cpp    # Simulation logic
+├── tests/
+│   └── monte_carlo_tests.cpp
+├── CMakeLists.txt
+└── vcpkg.json
 ```
 
 ## Actions
