@@ -3,11 +3,10 @@ package com.onthemoney.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onthemoney.service.PortfolioService;
-import org.springframework.web.bind.annotation.*;
-
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
@@ -71,20 +70,22 @@ public class DashboardController {
   }
 
   @PostMapping("/project")
-  public JsonNode projectRetirement(@RequestParam(defaultValue = "10000") double initialBalance,
-                                     @RequestParam(defaultValue = "500") double monthlyContribution,
-                                     @RequestParam(defaultValue = "7") double returnRate,
-                                     @RequestParam(defaultValue = "30") int years,
-                                     @RequestParam(defaultValue = "10000") int simulations) throws IOException {
-    return portfolioService.projectRetirement(initialBalance, monthlyContribution, returnRate / 100, years, simulations);
+  public JsonNode projectRetirement(
+      @RequestParam(defaultValue = "10000") double initialBalance,
+      @RequestParam(defaultValue = "500") double monthlyContribution,
+      @RequestParam(defaultValue = "7") double returnRate,
+      @RequestParam(defaultValue = "30") int years,
+      @RequestParam(defaultValue = "10000") int simulations)
+      throws IOException {
+    return portfolioService.projectRetirement(
+        initialBalance, monthlyContribution, returnRate / 100, years, simulations);
   }
 
   // ── Account endpoints ──────────────────────────────────────
 
   @PostMapping("/accounts")
-  public JsonNode addAccount(@RequestParam String name,
-                              @RequestParam double balance,
-                              @RequestParam String accType) {
+  public JsonNode addAccount(
+      @RequestParam String name, @RequestParam double balance, @RequestParam String accType) {
     var account = portfolioService.addAccount(name, balance, accType);
     return mapper.valueToTree(account);
   }
@@ -135,10 +136,11 @@ public class DashboardController {
   }
 
   @PutMapping("/accounts/{id}")
-  public JsonNode updateAccount(@PathVariable Long id,
-                                 @RequestParam(required = false) String name,
-                                 @RequestParam(required = false) Double balance,
-                                 @RequestParam(required = false) String accType) {
+  public JsonNode updateAccount(
+      @PathVariable Long id,
+      @RequestParam(required = false) String name,
+      @RequestParam(required = false) Double balance,
+      @RequestParam(required = false) String accType) {
     var account = portfolioService.updateAccount(id, name, balance, accType);
     if (account == null) {
       var err = mapper.createObjectNode();
@@ -152,10 +154,11 @@ public class DashboardController {
   // ── Deposit/Withdraw endpoints ─────────────────────────────
 
   @PostMapping("/accounts/{id}/deposit")
-  public JsonNode deposit(@PathVariable Long id,
-                           @RequestParam double amount,
-                           @RequestParam(required = false) String description,
-                           @RequestParam(required = false) String date) {
+  public JsonNode deposit(
+      @PathVariable Long id,
+      @RequestParam double amount,
+      @RequestParam(required = false) String description,
+      @RequestParam(required = false) String date) {
     LocalDate d = date != null ? LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE) : null;
     var t = portfolioService.deposit(id, amount, description, d);
     if (t == null) {
@@ -168,10 +171,11 @@ public class DashboardController {
   }
 
   @PostMapping("/accounts/{id}/withdraw")
-  public JsonNode withdraw(@PathVariable Long id,
-                            @RequestParam double amount,
-                            @RequestParam(required = false) String description,
-                            @RequestParam(required = false) String date) {
+  public JsonNode withdraw(
+      @PathVariable Long id,
+      @RequestParam double amount,
+      @RequestParam(required = false) String description,
+      @RequestParam(required = false) String date) {
     LocalDate d = date != null ? LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE) : null;
     var t = portfolioService.withdraw(id, amount, description, d);
     if (t == null) {
@@ -186,10 +190,11 @@ public class DashboardController {
   // ── Transfer endpoint ──────────────────────────────────────
 
   @PostMapping("/transfers")
-  public JsonNode transfer(@RequestParam Long fromAccountId,
-                            @RequestParam Long toAccountId,
-                            @RequestParam double amount,
-                            @RequestParam(required = false) String date) {
+  public JsonNode transfer(
+      @RequestParam Long fromAccountId,
+      @RequestParam Long toAccountId,
+      @RequestParam double amount,
+      @RequestParam(required = false) String date) {
     LocalDate d = date != null ? LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE) : null;
     var t = portfolioService.transfer(fromAccountId, toAccountId, amount, d);
     if (t == null) {
@@ -204,9 +209,10 @@ public class DashboardController {
   // ── Transaction endpoints ──────────────────────────────────
 
   @GetMapping("/transactions")
-  public JsonNode getTransactions(@RequestParam(defaultValue = "1970-01-01") String start,
-                                  @RequestParam(defaultValue = "9999-12-31") String end,
-                                  @RequestParam(required = false) Long accountId) {
+  public JsonNode getTransactions(
+      @RequestParam(defaultValue = "1970-01-01") String start,
+      @RequestParam(defaultValue = "9999-12-31") String end,
+      @RequestParam(required = false) Long accountId) {
     if (accountId != null) {
       return mapper.valueToTree(portfolioService.getTransactionsByAccount(accountId));
     }
@@ -216,10 +222,11 @@ public class DashboardController {
   }
 
   @PutMapping("/transactions/{id}")
-  public JsonNode updateTransaction(@PathVariable Long id,
-                                     @RequestParam(required = false) Double amount,
-                                     @RequestParam(required = false) String description,
-                                     @RequestParam(required = false) String date) {
+  public JsonNode updateTransaction(
+      @PathVariable Long id,
+      @RequestParam(required = false) Double amount,
+      @RequestParam(required = false) String description,
+      @RequestParam(required = false) String date) {
     LocalDate d = date != null ? LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE) : null;
     var t = portfolioService.updateTransaction(id, amount, description, d);
     if (t == null) {

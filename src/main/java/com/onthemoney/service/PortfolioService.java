@@ -6,14 +6,13 @@ import com.onthemoney.entity.AccountEntity;
 import com.onthemoney.entity.TransactionEntity;
 import com.onthemoney.repository.AccountRepository;
 import com.onthemoney.repository.TransactionRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
 import java.io.*;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 @Component
 public class PortfolioService {
@@ -27,7 +26,8 @@ public class PortfolioService {
   private final AccountRepository accountRepo;
   private final TransactionRepository transactionRepo;
 
-  public PortfolioService(ObjectMapper mapper, AccountRepository accountRepo, TransactionRepository transactionRepo) {
+  public PortfolioService(
+      ObjectMapper mapper, AccountRepository accountRepo, TransactionRepository transactionRepo) {
     this.mapper = mapper;
     this.accountRepo = accountRepo;
     this.transactionRepo = transactionRepo;
@@ -68,20 +68,23 @@ public class PortfolioService {
 
     var enginePath = Path.of("engine", "build", "src", "finance").toAbsolutePath().normalize();
     if (!enginePath.toFile().exists()) {
-      throw new IOException("Engine binary not found at " + enginePath + ". Build the engine first.");
+      throw new IOException(
+          "Engine binary not found at " + enginePath + ". Build the engine first.");
     }
     var pb = new ProcessBuilder(enginePath.toString());
     pb.directory(enginePath.getParent().toFile());
     engine = pb.start();
     toEngine = new BufferedWriter(new OutputStreamWriter(engine.getOutputStream()));
     fromEngine = new BufferedReader(new InputStreamReader(engine.getInputStream()));
-    new Thread(() -> {
-      try (var err = new BufferedReader(new InputStreamReader(engine.getErrorStream()))) {
-        while (err.readLine() != null) {}
-      } catch (IOException e) {
-        // stderr pipe closed
-      }
-    }).start();
+    new Thread(
+            () -> {
+              try (var err = new BufferedReader(new InputStreamReader(engine.getErrorStream()))) {
+                while (err.readLine() != null) {}
+              } catch (IOException e) {
+                // stderr pipe closed
+              }
+            })
+        .start();
     log.info("C++ engine started (pid={})", engine.pid());
   }
 
@@ -98,8 +101,13 @@ public class PortfolioService {
     return mapper.readTree(line);
   }
 
-  public JsonNode projectRetirement(double initialBalance, double monthlyContribution,
-                                    double returnRate, int years, int simulations) throws IOException {
+  public JsonNode projectRetirement(
+      double initialBalance,
+      double monthlyContribution,
+      double returnRate,
+      int years,
+      int simulations)
+      throws IOException {
     var request = mapper.createObjectNode();
     request.put("action", "projectRetirement");
     request.put("initialBalance", initialBalance);
@@ -141,7 +149,8 @@ public class PortfolioService {
     return accountRepo.findAll();
   }
 
-  public TransactionEntity transfer(Long fromAccountId, Long toAccountId, double amount, LocalDate date) {
+  public TransactionEntity transfer(
+      Long fromAccountId, Long toAccountId, double amount, LocalDate date) {
     var from = accountRepo.findById(fromAccountId).orElse(null);
     var to = accountRepo.findById(toAccountId).orElse(null);
     if (from == null || to == null) return null;
@@ -161,7 +170,8 @@ public class PortfolioService {
     return transactionRepo.save(t);
   }
 
-  public TransactionEntity deposit(Long accountId, double amount, String description, LocalDate date) {
+  public TransactionEntity deposit(
+      Long accountId, double amount, String description, LocalDate date) {
     var account = accountRepo.findById(accountId).orElse(null);
     if (account == null) return null;
     account.setBalance(account.getBalance() + amount);
@@ -176,7 +186,8 @@ public class PortfolioService {
     return transactionRepo.save(t);
   }
 
-  public TransactionEntity withdraw(Long accountId, double amount, String description, LocalDate date) {
+  public TransactionEntity withdraw(
+      Long accountId, double amount, String description, LocalDate date) {
     var account = accountRepo.findById(accountId).orElse(null);
     if (account == null) return null;
     account.setBalance(account.getBalance() - amount);
@@ -191,7 +202,8 @@ public class PortfolioService {
     return transactionRepo.save(t);
   }
 
-  public TransactionEntity updateTransaction(Long id, Double amount, String description, LocalDate date) {
+  public TransactionEntity updateTransaction(
+      Long id, Double amount, String description, LocalDate date) {
     var t = transactionRepo.findById(id).orElse(null);
     if (t == null) return null;
     if (amount != null) t.setAmount(amount);
