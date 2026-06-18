@@ -156,9 +156,56 @@ public class PortfolioService {
     t.setToAccountId(toAccountId);
     t.setAmount(amount);
     t.setDate(date != null ? date : LocalDate.now());
-    t.setType(2); // Transfer
+    t.setType(TransactionEntity.TYPE_TRANSFER);
     t.setDescription("");
     return transactionRepo.save(t);
+  }
+
+  public TransactionEntity deposit(Long accountId, double amount, String description, LocalDate date) {
+    var account = accountRepo.findById(accountId).orElse(null);
+    if (account == null) return null;
+    account.setBalance(account.getBalance() + amount);
+    accountRepo.save(account);
+
+    var t = new TransactionEntity();
+    t.setToAccountId(accountId);
+    t.setAmount(amount);
+    t.setDate(date != null ? date : LocalDate.now());
+    t.setType(TransactionEntity.TYPE_DEPOSIT);
+    t.setDescription(description != null ? description : "");
+    return transactionRepo.save(t);
+  }
+
+  public TransactionEntity withdraw(Long accountId, double amount, String description, LocalDate date) {
+    var account = accountRepo.findById(accountId).orElse(null);
+    if (account == null) return null;
+    account.setBalance(account.getBalance() - amount);
+    accountRepo.save(account);
+
+    var t = new TransactionEntity();
+    t.setFromAccountId(accountId);
+    t.setAmount(amount);
+    t.setDate(date != null ? date : LocalDate.now());
+    t.setType(TransactionEntity.TYPE_WITHDRAW);
+    t.setDescription(description != null ? description : "");
+    return transactionRepo.save(t);
+  }
+
+  public TransactionEntity updateTransaction(Long id, Double amount, String description, LocalDate date) {
+    var t = transactionRepo.findById(id).orElse(null);
+    if (t == null) return null;
+    if (amount != null) t.setAmount(amount);
+    if (description != null) t.setDescription(description);
+    if (date != null) t.setDate(date);
+    return transactionRepo.save(t);
+  }
+
+  public void deleteTransaction(Long id) {
+    transactionRepo.deleteById(id);
+  }
+
+  public List<TransactionEntity> getTransactionsByAccount(Long accountId) {
+    return transactionRepo.findByFromAccountIdOrToAccountId(accountId, accountId);
   }
 
   public List<TransactionEntity> getTransactions(LocalDate start, LocalDate end) {

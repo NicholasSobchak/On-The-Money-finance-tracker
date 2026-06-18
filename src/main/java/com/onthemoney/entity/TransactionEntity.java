@@ -21,6 +21,10 @@ public class TransactionEntity {
 
   private LocalDate date;
 
+  public static final int TYPE_DEPOSIT = 0;
+  public static final int TYPE_WITHDRAW = 1;
+  public static final int TYPE_TRANSFER = 2;
+
   private int type;
 
   public Long getId() {

@@ -149,6 +149,40 @@ public class DashboardController {
     return mapper.valueToTree(account);
   }
 
+  // ── Deposit/Withdraw endpoints ─────────────────────────────
+
+  @PostMapping("/accounts/{id}/deposit")
+  public JsonNode deposit(@PathVariable Long id,
+                           @RequestParam double amount,
+                           @RequestParam(required = false) String description,
+                           @RequestParam(required = false) String date) {
+    LocalDate d = date != null ? LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE) : null;
+    var t = portfolioService.deposit(id, amount, description, d);
+    if (t == null) {
+      var err = mapper.createObjectNode();
+      err.put("status", "error");
+      err.put("message", "account not found");
+      return err;
+    }
+    return mapper.valueToTree(t);
+  }
+
+  @PostMapping("/accounts/{id}/withdraw")
+  public JsonNode withdraw(@PathVariable Long id,
+                            @RequestParam double amount,
+                            @RequestParam(required = false) String description,
+                            @RequestParam(required = false) String date) {
+    LocalDate d = date != null ? LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE) : null;
+    var t = portfolioService.withdraw(id, amount, description, d);
+    if (t == null) {
+      var err = mapper.createObjectNode();
+      err.put("status", "error");
+      err.put("message", "account not found");
+      return err;
+    }
+    return mapper.valueToTree(t);
+  }
+
   // ── Transfer endpoint ──────────────────────────────────────
 
   @PostMapping("/transfers")
@@ -167,13 +201,41 @@ public class DashboardController {
     return mapper.valueToTree(t);
   }
 
-  // ── Transaction endpoint ───────────────────────────────────
+  // ── Transaction endpoints ──────────────────────────────────
 
   @GetMapping("/transactions")
   public JsonNode getTransactions(@RequestParam(defaultValue = "1970-01-01") String start,
-                                  @RequestParam(defaultValue = "9999-12-31") String end) {
+                                  @RequestParam(defaultValue = "9999-12-31") String end,
+                                  @RequestParam(required = false) Long accountId) {
+    if (accountId != null) {
+      return mapper.valueToTree(portfolioService.getTransactionsByAccount(accountId));
+    }
     var startDate = LocalDate.parse(start, DateTimeFormatter.ISO_LOCAL_DATE);
     var endDate = LocalDate.parse(end, DateTimeFormatter.ISO_LOCAL_DATE);
     return mapper.valueToTree(portfolioService.getTransactions(startDate, endDate));
+  }
+
+  @PutMapping("/transactions/{id}")
+  public JsonNode updateTransaction(@PathVariable Long id,
+                                     @RequestParam(required = false) Double amount,
+                                     @RequestParam(required = false) String description,
+                                     @RequestParam(required = false) String date) {
+    LocalDate d = date != null ? LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE) : null;
+    var t = portfolioService.updateTransaction(id, amount, description, d);
+    if (t == null) {
+      var err = mapper.createObjectNode();
+      err.put("status", "error");
+      err.put("message", "transaction not found");
+      return err;
+    }
+    return mapper.valueToTree(t);
+  }
+
+  @DeleteMapping("/transactions/{id}")
+  public JsonNode deleteTransaction(@PathVariable Long id) {
+    portfolioService.deleteTransaction(id);
+    var ok = mapper.createObjectNode();
+    ok.put("status", "ok");
+    return ok;
   }
 }
