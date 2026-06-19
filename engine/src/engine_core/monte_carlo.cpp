@@ -1,14 +1,14 @@
-#include "engine_core.h"
+#include "monte_carlo.h"
 
 #include <algorithm>
 #include <cmath>
 #include <numeric>
 #include <random>
 
-namespace engine_core
+namespace monte_carlo
 {
 
-double monteCarloPercentile(std::vector<double> &results, double p)
+double monteCarloPercentile(const std::vector<double> &results, double p)
 {
   if (results.empty())
   {
@@ -109,4 +109,4 @@ json projectRetirement(
   };
 }
 
-} // namespace engine_core
+} // namespace monte_carlo

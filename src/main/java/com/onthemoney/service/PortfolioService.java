@@ -3,18 +3,24 @@ package com.onthemoney.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onthemoney.entity.AccountEntity;
+import com.onthemoney.entity.AccountType;
 import com.onthemoney.entity.TransactionEntity;
+import com.onthemoney.entity.TransactionType;
 import com.onthemoney.repository.AccountRepository;
 import com.onthemoney.repository.TransactionRepository;
+import jakarta.annotation.PreDestroy;
 import java.io.*;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
+@Transactional
 public class PortfolioService {
 
   private static final Logger log = LoggerFactory.getLogger(PortfolioService.class);
@@ -33,32 +39,52 @@ public class PortfolioService {
     this.transactionRepo = transactionRepo;
   }
 
+  @PreDestroy
+  public void cleanup() {
+    try {
+      if (toEngine != null) toEngine.close();
+    } catch (IOException e) {
+      // ignore
+    }
+    try {
+      if (fromEngine != null) fromEngine.close();
+    } catch (IOException e) {
+      // ignore
+    }
+    if (engine != null && engine.isAlive()) {
+      engine.destroy();
+      log.info("C++ engine stopped");
+    }
+  }
+
   // ── Java computations (simple math, no engine needed) ──────
 
-  public double netWorth() {
-    return accountRepo.findAll().stream().mapToDouble(AccountEntity::getBalance).sum();
+  public BigDecimal netWorth() {
+    return accountRepo.findAll().stream()
+        .map(AccountEntity::getBalance)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
   }
 
-  public double totalAssets() {
+  public BigDecimal totalAssets() {
     return accountRepo.findAll().stream()
-        .filter(a -> a.getBalance() > 0)
-        .mapToDouble(AccountEntity::getBalance)
-        .sum();
+        .map(AccountEntity::getBalance)
+        .filter(b -> b.compareTo(BigDecimal.ZERO) > 0)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
   }
 
-  public double totalLiabilities() {
+  public BigDecimal totalLiabilities() {
     return accountRepo.findAll().stream()
-        .filter(a -> a.getBalance() < 0)
-        .mapToDouble(AccountEntity::getBalance)
-        .sum();
+        .map(AccountEntity::getBalance)
+        .filter(b -> b.compareTo(BigDecimal.ZERO) < 0)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
   }
 
   public boolean inTheRed() {
-    return netWorth() < 0;
+    return netWorth().compareTo(BigDecimal.ZERO) < 0;
   }
 
   public boolean inTheGreen() {
-    return netWorth() >= 0;
+    return netWorth().compareTo(BigDecimal.ZERO) >= 0;
   }
 
   // ── Engine for heavy computation (lazy-start) ──────────────
@@ -66,7 +92,7 @@ public class PortfolioService {
   private synchronized void ensureEngineStarted() throws IOException {
     if (engine != null && engine.isAlive()) return;
 
-    var enginePath = Path.of("engine", "build", "src", "finance").toAbsolutePath().normalize();
+    var enginePath = Path.of("engine", "build", "src", "run_engine").toAbsolutePath().normalize();
     if (!enginePath.toFile().exists()) {
       throw new IOException(
           "Engine binary not found at " + enginePath + ". Build the engine first.");
@@ -76,15 +102,17 @@ public class PortfolioService {
     engine = pb.start();
     toEngine = new BufferedWriter(new OutputStreamWriter(engine.getOutputStream()));
     fromEngine = new BufferedReader(new InputStreamReader(engine.getInputStream()));
-    new Thread(
+    var t =
+        new Thread(
             () -> {
               try (var err = new BufferedReader(new InputStreamReader(engine.getErrorStream()))) {
                 while (err.readLine() != null) {}
               } catch (IOException e) {
                 // stderr pipe closed
               }
-            })
-        .start();
+            });
+    t.setDaemon(true);
+    t.start();
     log.info("C++ engine started (pid={})", engine.pid());
   }
 
@@ -99,6 +127,10 @@ public class PortfolioService {
       throw new IOException("engine process terminated unexpectedly");
     }
     return mapper.readTree(line);
+  }
+
+  public synchronized boolean isRunning() {
+    return engine != null && engine.isAlive();
   }
 
   public JsonNode projectRetirement(
@@ -120,7 +152,8 @@ public class PortfolioService {
 
   // ── DB operations ──────────────────────────────────────────
 
-  public AccountEntity updateAccount(Long id, String name, Double balance, String accType) {
+  public AccountEntity updateAccount(
+      Long id, String name, BigDecimal balance, AccountType accType) {
     var account = accountRepo.findById(id).orElse(null);
     if (account == null) return null;
     if (name != null) account.setName(name);
@@ -129,7 +162,7 @@ public class PortfolioService {
     return accountRepo.save(account);
   }
 
-  public AccountEntity addAccount(String name, double balance, String accType) {
+  public AccountEntity addAccount(String name, BigDecimal balance, AccountType accType) {
     var account = new AccountEntity();
     account.setName(name);
     account.setBalance(balance);
@@ -150,13 +183,13 @@ public class PortfolioService {
   }
 
   public TransactionEntity transfer(
-      Long fromAccountId, Long toAccountId, double amount, LocalDate date) {
+      Long fromAccountId, Long toAccountId, BigDecimal amount, LocalDate date) {
     var from = accountRepo.findById(fromAccountId).orElse(null);
     var to = accountRepo.findById(toAccountId).orElse(null);
     if (from == null || to == null) return null;
 
-    from.setBalance(from.getBalance() - amount);
-    to.setBalance(to.getBalance() + amount);
+    from.setBalance(from.getBalance().subtract(amount));
+    to.setBalance(to.getBalance().add(amount));
     accountRepo.save(from);
     accountRepo.save(to);
 
@@ -165,45 +198,45 @@ public class PortfolioService {
     t.setToAccountId(toAccountId);
     t.setAmount(amount);
     t.setDate(date != null ? date : LocalDate.now());
-    t.setType(TransactionEntity.TYPE_TRANSFER);
+    t.setType(TransactionType.TRANSFER);
     t.setDescription("");
     return transactionRepo.save(t);
   }
 
   public TransactionEntity deposit(
-      Long accountId, double amount, String description, LocalDate date) {
+      Long accountId, BigDecimal amount, String description, LocalDate date) {
     var account = accountRepo.findById(accountId).orElse(null);
     if (account == null) return null;
-    account.setBalance(account.getBalance() + amount);
+    account.setBalance(account.getBalance().add(amount));
     accountRepo.save(account);
 
     var t = new TransactionEntity();
     t.setToAccountId(accountId);
     t.setAmount(amount);
     t.setDate(date != null ? date : LocalDate.now());
-    t.setType(TransactionEntity.TYPE_DEPOSIT);
+    t.setType(TransactionType.DEPOSIT);
     t.setDescription(description != null ? description : "");
     return transactionRepo.save(t);
   }
 
   public TransactionEntity withdraw(
-      Long accountId, double amount, String description, LocalDate date) {
+      Long accountId, BigDecimal amount, String description, LocalDate date) {
     var account = accountRepo.findById(accountId).orElse(null);
     if (account == null) return null;
-    account.setBalance(account.getBalance() - amount);
+    account.setBalance(account.getBalance().subtract(amount));
     accountRepo.save(account);
 
     var t = new TransactionEntity();
     t.setFromAccountId(accountId);
     t.setAmount(amount);
     t.setDate(date != null ? date : LocalDate.now());
-    t.setType(TransactionEntity.TYPE_WITHDRAW);
+    t.setType(TransactionType.WITHDRAW);
     t.setDescription(description != null ? description : "");
     return transactionRepo.save(t);
   }
 
   public TransactionEntity updateTransaction(
-      Long id, Double amount, String description, LocalDate date) {
+      Long id, BigDecimal amount, String description, LocalDate date) {
     var t = transactionRepo.findById(id).orElse(null);
     if (t == null) return null;
     if (amount != null) t.setAmount(amount);
@@ -230,10 +263,8 @@ public class PortfolioService {
   }
 
   public void deleteAccountById(Long id) {
+    var transactions = transactionRepo.findByFromAccountIdOrToAccountId(id, id);
+    transactionRepo.deleteAll(transactions);
     accountRepo.deleteById(id);
-  }
-
-  public boolean isRunning() {
-    return engine != null && engine.isAlive();
   }
 }

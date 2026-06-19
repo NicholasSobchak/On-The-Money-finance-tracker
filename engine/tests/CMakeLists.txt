@@ -7,7 +7,7 @@ add_executable(run_tests
 
 target_link_libraries(run_tests PRIVATE
   Catch2::Catch2WithMain
-  engine_core
+  monte_carlo
 )
 
 catch_discover_tests(run_tests)

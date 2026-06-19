@@ -2,10 +2,11 @@ services:
   db:
     image: postgres:16-alpine
     container_name: onthemoney-db
+    env_file: .env
     environment:
       POSTGRES_DB: onthemoney
-      POSTGRES_USER: app 
-      POSTGRES_PASSWORD: devpassword
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:

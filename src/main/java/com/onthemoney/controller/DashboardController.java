@@ -2,11 +2,17 @@ package com.onthemoney.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.onthemoney.entity.AccountType;
 import com.onthemoney.service.PortfolioService;
+import jakarta.validation.constraints.Positive;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api")
@@ -71,11 +77,11 @@ public class DashboardController {
 
   @PostMapping("/project")
   public JsonNode projectRetirement(
-      @RequestParam(defaultValue = "10000") double initialBalance,
-      @RequestParam(defaultValue = "500") double monthlyContribution,
+      @RequestParam(defaultValue = "10000") @Positive double initialBalance,
+      @RequestParam(defaultValue = "500") @Positive double monthlyContribution,
       @RequestParam(defaultValue = "7") double returnRate,
-      @RequestParam(defaultValue = "30") int years,
-      @RequestParam(defaultValue = "10000") int simulations)
+      @RequestParam(defaultValue = "30") @Positive int years,
+      @RequestParam(defaultValue = "10000") @Positive int simulations)
       throws IOException {
     return portfolioService.projectRetirement(
         initialBalance, monthlyContribution, returnRate / 100, years, simulations);
@@ -84,8 +90,11 @@ public class DashboardController {
   // ── Account endpoints ──────────────────────────────────────
 
   @PostMapping("/accounts")
+  @ResponseStatus(HttpStatus.CREATED)
   public JsonNode addAccount(
-      @RequestParam String name, @RequestParam double balance, @RequestParam String accType) {
+      @RequestParam String name,
+      @RequestParam @Positive BigDecimal balance,
+      @RequestParam AccountType accType) {
     var account = portfolioService.addAccount(name, balance, accType);
     return mapper.valueToTree(account);
   }
@@ -97,10 +106,7 @@ public class DashboardController {
     }
     var account = portfolioService.getAccountByName(name);
     if (account == null) {
-      var err = mapper.createObjectNode();
-      err.put("status", "error");
-      err.put("message", "account not found");
-      return err;
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "account not found");
     }
     return mapper.valueToTree(account);
   }
@@ -109,10 +115,7 @@ public class DashboardController {
   public JsonNode getAccountById(@PathVariable Long id) {
     var account = portfolioService.getAccountById(id);
     if (account == null) {
-      var err = mapper.createObjectNode();
-      err.put("status", "error");
-      err.put("message", "account not found");
-      return err;
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "account not found");
     }
     return mapper.valueToTree(account);
   }
@@ -120,33 +123,26 @@ public class DashboardController {
   // ── Delete endpoints ──────────────────────────────────────
 
   @DeleteMapping("/accounts")
-  public JsonNode deleteAllAccounts() {
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void deleteAllAccounts() {
     portfolioService.deleteAllAccounts();
-    var ok = mapper.createObjectNode();
-    ok.put("status", "ok");
-    return ok;
   }
 
   @DeleteMapping("/accounts/{id}")
-  public JsonNode deleteAccountById(@PathVariable Long id) {
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void deleteAccountById(@PathVariable Long id) {
     portfolioService.deleteAccountById(id);
-    var ok = mapper.createObjectNode();
-    ok.put("status", "ok");
-    return ok;
   }
 
   @PutMapping("/accounts/{id}")
   public JsonNode updateAccount(
       @PathVariable Long id,
       @RequestParam(required = false) String name,
-      @RequestParam(required = false) Double balance,
-      @RequestParam(required = false) String accType) {
+      @RequestParam(required = false) @Positive BigDecimal balance,
+      @RequestParam(required = false) AccountType accType) {
     var account = portfolioService.updateAccount(id, name, balance, accType);
     if (account == null) {
-      var err = mapper.createObjectNode();
-      err.put("status", "error");
-      err.put("message", "account not found");
-      return err;
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "account not found");
     }
     return mapper.valueToTree(account);
   }
@@ -154,35 +150,31 @@ public class DashboardController {
   // ── Deposit/Withdraw endpoints ─────────────────────────────
 
   @PostMapping("/accounts/{id}/deposit")
+  @ResponseStatus(HttpStatus.CREATED)
   public JsonNode deposit(
       @PathVariable Long id,
-      @RequestParam double amount,
+      @RequestParam @Positive BigDecimal amount,
       @RequestParam(required = false) String description,
       @RequestParam(required = false) String date) {
-    LocalDate d = date != null ? LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE) : null;
+    LocalDate d = parseDate(date);
     var t = portfolioService.deposit(id, amount, description, d);
     if (t == null) {
-      var err = mapper.createObjectNode();
-      err.put("status", "error");
-      err.put("message", "account not found");
-      return err;
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "account not found");
     }
     return mapper.valueToTree(t);
   }
 
   @PostMapping("/accounts/{id}/withdraw")
+  @ResponseStatus(HttpStatus.CREATED)
   public JsonNode withdraw(
       @PathVariable Long id,
-      @RequestParam double amount,
+      @RequestParam @Positive BigDecimal amount,
       @RequestParam(required = false) String description,
       @RequestParam(required = false) String date) {
-    LocalDate d = date != null ? LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE) : null;
+    LocalDate d = parseDate(date);
     var t = portfolioService.withdraw(id, amount, description, d);
     if (t == null) {
-      var err = mapper.createObjectNode();
-      err.put("status", "error");
-      err.put("message", "account not found");
-      return err;
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "account not found");
     }
     return mapper.valueToTree(t);
   }
@@ -190,18 +182,16 @@ public class DashboardController {
   // ── Transfer endpoint ──────────────────────────────────────
 
   @PostMapping("/transfers")
+  @ResponseStatus(HttpStatus.CREATED)
   public JsonNode transfer(
       @RequestParam Long fromAccountId,
       @RequestParam Long toAccountId,
-      @RequestParam double amount,
+      @RequestParam @Positive BigDecimal amount,
       @RequestParam(required = false) String date) {
-    LocalDate d = date != null ? LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE) : null;
+    LocalDate d = parseDate(date);
     var t = portfolioService.transfer(fromAccountId, toAccountId, amount, d);
     if (t == null) {
-      var err = mapper.createObjectNode();
-      err.put("status", "error");
-      err.put("message", "account not found");
-      return err;
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "account not found");
     }
     return mapper.valueToTree(t);
   }
@@ -224,25 +214,30 @@ public class DashboardController {
   @PutMapping("/transactions/{id}")
   public JsonNode updateTransaction(
       @PathVariable Long id,
-      @RequestParam(required = false) Double amount,
+      @RequestParam(required = false) @Positive BigDecimal amount,
       @RequestParam(required = false) String description,
       @RequestParam(required = false) String date) {
-    LocalDate d = date != null ? LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE) : null;
+    LocalDate d = parseDate(date);
     var t = portfolioService.updateTransaction(id, amount, description, d);
     if (t == null) {
-      var err = mapper.createObjectNode();
-      err.put("status", "error");
-      err.put("message", "transaction not found");
-      return err;
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "transaction not found");
     }
     return mapper.valueToTree(t);
   }
 
   @DeleteMapping("/transactions/{id}")
-  public JsonNode deleteTransaction(@PathVariable Long id) {
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void deleteTransaction(@PathVariable Long id) {
     portfolioService.deleteTransaction(id);
-    var ok = mapper.createObjectNode();
-    ok.put("status", "ok");
-    return ok;
+  }
+
+  private static LocalDate parseDate(String date) {
+    if (date == null) return null;
+    try {
+      return LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE);
+    } catch (DateTimeParseException e) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "invalid date format, expected yyyy-MM-dd");
+    }
   }
 }

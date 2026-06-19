@@ -3,12 +3,12 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 
-using json = nlohmann::json;
-
-namespace engine_core
+namespace monte_carlo
 {
 
-double monteCarloPercentile(std::vector<double> &results, double p);
+using json = nlohmann::json;
+
+double monteCarloPercentile(const std::vector<double> &results, double p);
 
 json projectRetirement(
     double initialBalance,
@@ -17,4 +17,4 @@ json projectRetirement(
     int years,
     int simulations);
 
-} // namespace engine_core
+} // namespace monte_carlo

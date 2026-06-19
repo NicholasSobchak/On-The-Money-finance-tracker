@@ -1,6 +1,9 @@
 package com.onthemoney.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "accounts")
@@ -10,11 +13,14 @@ public class AccountEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  private String name;
+  @NotBlank private String name;
 
-  private double balance;
+  @PositiveOrZero
+  @Column(precision = 19, scale = 2)
+  private BigDecimal balance = BigDecimal.ZERO;
 
-  private String accType;
+  @Enumerated(EnumType.STRING)
+  private AccountType accType;
 
   public Long getId() {
     return id;
@@ -32,19 +38,19 @@ public class AccountEntity {
     this.name = name;
   }
 
-  public double getBalance() {
+  public BigDecimal getBalance() {
     return balance;
   }
 
-  public void setBalance(double balance) {
+  public void setBalance(BigDecimal balance) {
     this.balance = balance;
   }
 
-  public String getAccType() {
+  public AccountType getAccType() {
     return accType;
   }
 
-  public void setAccType(String accType) {
+  public void setAccType(AccountType accType) {
     this.accType = accType;
   }
 }

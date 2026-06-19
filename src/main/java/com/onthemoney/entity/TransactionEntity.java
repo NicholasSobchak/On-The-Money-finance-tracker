@@ -1,6 +1,9 @@
 package com.onthemoney.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -12,20 +15,19 @@ public class TransactionEntity {
   private Long id;
 
   private Long fromAccountId;
-
   private Long toAccountId;
 
-  private double amount;
+  @NotNull
+  @Positive
+  @Column(precision = 19, scale = 2)
+  private BigDecimal amount;
 
   private String description;
 
-  private LocalDate date;
+  @NotNull private LocalDate date;
 
-  public static final int TYPE_DEPOSIT = 0;
-  public static final int TYPE_WITHDRAW = 1;
-  public static final int TYPE_TRANSFER = 2;
-
-  private int type;
+  @Enumerated(EnumType.STRING)
+  private TransactionType type;
 
   public Long getId() {
     return id;
@@ -51,11 +53,11 @@ public class TransactionEntity {
     this.toAccountId = toAccountId;
   }
 
-  public double getAmount() {
+  public BigDecimal getAmount() {
     return amount;
   }
 
-  public void setAmount(double amount) {
+  public void setAmount(BigDecimal amount) {
     this.amount = amount;
   }
 
@@ -75,11 +77,11 @@ public class TransactionEntity {
     this.date = date;
   }
 
-  public int getType() {
+  public TransactionType getType() {
     return type;
   }
 
-  public void setType(int type) {
+  public void setType(TransactionType type) {
     this.type = type;
   }
 }

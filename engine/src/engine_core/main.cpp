@@ -1,4 +1,4 @@
-#include "engine_core.h"
+#include "monte_carlo.h"
 
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -21,7 +21,7 @@ int main()
 
       if (action == "projectRetirement")
       {
-        auto result = engine_core::projectRetirement(
+        auto result = monte_carlo::projectRetirement(
             req["initialBalance"].get<double>(), req["monthlyContribution"].get<double>(),
             req["returnRate"].get<double>(), req["years"].get<int>(),
             req["simulations"].get<int>());

@@ -75,3 +75,6 @@ Testing/
 
 # Java compiled classes
 *.class
+
+# Environment files
+.env
