@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,12 +32,17 @@ public class PortfolioService {
   private final ObjectMapper mapper;
   private final AccountRepository accountRepo;
   private final TransactionRepository transactionRepo;
+  private final Path enginePath;
 
   public PortfolioService(
-      ObjectMapper mapper, AccountRepository accountRepo, TransactionRepository transactionRepo) {
+      ObjectMapper mapper,
+      AccountRepository accountRepo,
+      TransactionRepository transactionRepo,
+      @Value("${engine.binary-path:engine/build/src/run_engine}") String enginePathStr) {
     this.mapper = mapper;
     this.accountRepo = accountRepo;
     this.transactionRepo = transactionRepo;
+    this.enginePath = Path.of(enginePathStr).toAbsolutePath().normalize();
   }
 
   @PreDestroy
@@ -92,7 +98,6 @@ public class PortfolioService {
   private synchronized void ensureEngineStarted() throws IOException {
     if (engine != null && engine.isAlive()) return;
 
-    var enginePath = Path.of("engine", "build", "src", "run_engine").toAbsolutePath().normalize();
     if (!enginePath.toFile().exists()) {
       throw new IOException(
           "Engine binary not found at " + enginePath + ". Build the engine first.");
