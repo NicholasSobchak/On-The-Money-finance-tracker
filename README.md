@@ -16,12 +16,14 @@ On the money is a personal finance tracker with a Java/Spring Boot API, PostgreS
 
 ### This project uses
   - C++20
-  - Java 17, Spring Boot 3.3
+  - Java 17
   - Swift
+  - [Spring Boot 3.3](https://spring.io/projects/spring-boot)
   - [PostgreSQL](https://www.postgresql.org/docs/)
-  - Docker
+  - [Docker](https://docs.docker.com/manuals/)
   - CMake
   - [Gradle](https://docs.gradle.org/current/userguide/userguide.html)
+  - [nlohmann/json](https://json.nlohmann.me/)
   - clang (tidy/format)
 
 ### Project Structure
@@ -34,19 +36,15 @@ On the money is a personal finance tracker with a Java/Spring Boot API, PostgreS
 │   │   └── engine_core/
 │   ├── tests/
 │   │   └── unit/
+│   ├── scripts/
 │   └── vcpkg_installed/
 ├── src/
 │   ├── main/
 │   │   ├── java/
 │   │   └── resources/
 │   └── test/
-├── gradle/
 ├── build.gradle
-├── gradlew
-├── gradlew.bat
-├── scripts/
-├── docker-compose.yml
-└── On-The-Money_logo.png
+└── docker-compose.yml
 ```
 
 ### Code Formatting (Pre-commit Hook)
@@ -81,8 +79,8 @@ The `accounts` and `transactions` tables are auto-created by Hibernate. To inspe
 
 ```bash
 docker exec -it onthemoney-db psql -U app -d onthemoney
-\dt
-\q
+\dt  # show tables
+\q   # quit
 ```
 
 ## Build & Run
@@ -135,9 +133,6 @@ cmake --build build -j
 See [`engine/README.md`](engine/README.md) for the complete JSON response structure.
 
 For the Java API endpoints, requests and responses use JSON body format. Simple computations (net worth, assets, liabilities) are computed directly in Java. The Monte Carlo projection (`POST /api/project`) delegates to the C++ engine.
-
-# API Example
-...
 
 # Use & Distribution
 _This project is for personal use only. It is not at all affiliated with any financial or institutional corporations. No gains or profits are made from this project, it is simply a tool for personal use._
