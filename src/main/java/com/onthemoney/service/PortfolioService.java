@@ -63,7 +63,7 @@ public class PortfolioService {
     }
   }
 
-  // ── Java computations (simple math, no engine needed) ──────
+  // Java computations (simple math, no engine needed)
 
   public BigDecimal netWorth() {
     return accountRepo.findAll().stream()
@@ -93,7 +93,7 @@ public class PortfolioService {
     return netWorth().compareTo(BigDecimal.ZERO) >= 0;
   }
 
-  // ── Engine for heavy computation (lazy-start) ──────────────
+  // Engine for heavy computation (lazy-start)
 
   private synchronized void ensureEngineStarted() throws IOException {
     if (engine != null && engine.isAlive()) return;
@@ -155,7 +155,7 @@ public class PortfolioService {
     return send(request);
   }
 
-  // ── DB operations ──────────────────────────────────────────
+  // DB operation
 
   public AccountEntity updateAccount(
       Long id, String name, BigDecimal balance, AccountType accType) {

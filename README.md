@@ -109,24 +109,34 @@ cmake --build build -j
 
 ## API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/` | Greeting |
-| `GET` | `/api/status` | Engine status (online/offline) |
-| `GET` | `/api/net-worth` | Total net worth |
-| `GET` | `/api/total-assets` | Sum of positive balances |
-| `GET` | `/api/total-liabilities` | Sum of negative balances |
-| `GET` | `/api/in-the-red` | Net worth negative? |
-| `GET` | `/api/in-the-green` | Net worth non-negative? |
-| `POST` | `/api/project` | Monte Carlo retirement projection |
-| `GET` | `/api/accounts` | All accounts (or `?name=Checking`) |
-| `GET` | `/api/accounts/{id}` | Account by ID |
-| `POST` | `/api/accounts?name=X&balance=Y&accType=Z` | Create account |
-| `PUT` | `/api/accounts/{id}?name=X&balance=Y&accType=Z` | Update account |
-| `DELETE` | `/api/accounts` | Delete all accounts + transactions |
-| `DELETE` | `/api/accounts/{id}` | Delete account by ID |
-| `POST` | `/api/transfers` | Transfer between accounts |
-| `GET` | `/api/transactions` | List transactions by date range |
+```http
+GET  /api/
+GET  /api/status
+GET  /api/net-worth
+GET  /api/total-assets
+GET  /api/total-liabilities
+GET  /api/in-the-red
+GET  /api/in-the-green
+POST /api/project?initialBalance=10000&monthlyContribution=500&returnRate=7&years=30&simulations=1000
+
+POST /api/accounts?name=Checking&balance=5000&accType=CHECKING
+GET  /api/accounts
+GET  /api/accounts?name=Checking
+GET  /api/accounts/1
+PUT  /api/accounts/1?name=Primary&balance=6000
+DEL  /api/accounts/1
+DEL  /api/accounts
+
+POST /api/accounts/1/deposit?amount=500&description=paycheck&date=2026-06-19
+POST /api/accounts/1/withdraw?amount=100&description=groceries&date=2026-06-20
+GET  /api/transactions
+GET  /api/transactions?start=2026-01-01&end=2026-12-31
+GET  /api/transactions?accountId=1
+PUT  /api/transactions/1?amount=250
+DEL  /api/transactions/1
+
+POST /api/transfers?fromAccountId=2&toAccountId=1&amount=2000&date=2026-06-19
+```
 
 ## JSON Protocol
 
