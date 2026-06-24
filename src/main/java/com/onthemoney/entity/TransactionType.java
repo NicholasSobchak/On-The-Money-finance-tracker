@@ -5,3 +5,4 @@ public enum TransactionType {
   WITHDRAW,
   TRANSFER
 }
+// End TransactionType

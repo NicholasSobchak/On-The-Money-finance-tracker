@@ -6,3 +6,4 @@ public enum AccountType {
   CREDIT_CARD,
   INVESTMENT
 }
+// End AccountType

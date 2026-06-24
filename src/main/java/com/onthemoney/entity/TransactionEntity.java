@@ -85,3 +85,4 @@ public class TransactionEntity {
     this.type = type;
   }
 }
+// End TransactionEntity

@@ -38,7 +38,7 @@ public class DashboardController {
     return status;
   }
 
-  // ── Computation endpoints ──────────────────────────────────
+  // Computation endpoints
 
   @GetMapping("/net-worth")
   public JsonNode getNetWorth() {
@@ -87,7 +87,7 @@ public class DashboardController {
         initialBalance, monthlyContribution, returnRate / 100, years, simulations);
   }
 
-  // ── Account endpoints ──────────────────────────────────────
+  // Account endpoints
 
   @PostMapping("/accounts")
   @ResponseStatus(HttpStatus.CREATED)
@@ -120,7 +120,7 @@ public class DashboardController {
     return mapper.valueToTree(account);
   }
 
-  // ── Delete endpoints ──────────────────────────────────────
+  // Delete endpoints
 
   @DeleteMapping("/accounts")
   @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -147,7 +147,7 @@ public class DashboardController {
     return mapper.valueToTree(account);
   }
 
-  // ── Deposit/Withdraw endpoints ─────────────────────────────
+  // Deposit/Withdraw endpoints
 
   @PostMapping("/accounts/{id}/deposit")
   @ResponseStatus(HttpStatus.CREATED)
@@ -179,7 +179,7 @@ public class DashboardController {
     return mapper.valueToTree(t);
   }
 
-  // ── Transfer endpoint ──────────────────────────────────────
+  // Transfer endpoint
 
   @PostMapping("/transfers")
   @ResponseStatus(HttpStatus.CREATED)
@@ -196,7 +196,7 @@ public class DashboardController {
     return mapper.valueToTree(t);
   }
 
-  // ── Transaction endpoints ──────────────────────────────────
+  // Transaction endpoints
 
   @GetMapping("/transactions")
   public JsonNode getTransactions(
@@ -241,3 +241,4 @@ public class DashboardController {
     }
   }
 }
+// End DashboardController

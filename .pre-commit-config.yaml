@@ -7,3 +7,10 @@ repos:
     entry: clang-format-17 -i
     language: system
     files: \.(c|cpp|h|hpp|cc|hh)$
+  - id: spotless
+    name: spotless
+    description: Format Java with Spotless (google-java-format)
+    entry: bash -c 'source "$HOME/.sdkman/bin/sdkman-init.sh" && ./gradlew spotlessApply'
+    language: system
+    files: \.java$
+    pass_filenames: false

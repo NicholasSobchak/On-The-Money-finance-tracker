@@ -10,3 +10,4 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
 
   List<TransactionEntity> findByFromAccountIdOrToAccountId(Long fromAccountId, Long toAccountId);
 }
+// End TransactionRepository
