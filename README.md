@@ -19,6 +19,7 @@ On the money is a personal finance tracker with a Java/Spring Boot API, PostgreS
   - Java 17
   - Swift
   - [Spring Boot 3.3](https://spring.io/projects/spring-boot)
+  - SwiftUI
   - [PostgreSQL](https://www.postgresql.org/docs/)
   - [Docker](https://docs.docker.com/manuals/)
   - CMake

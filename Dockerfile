@@ -11,7 +11,7 @@ RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build -j"$(nproc)" --target run_engine && \
     cp build/src/run_engine /run_engine
 
-FROM eclipse-temurin:17-jdk-alpine AS java-builder
+FROM eclipse-temurin:17-jdk AS java-builder
 WORKDIR /app
 COPY gradlew build.gradle ./
 COPY gradle gradle

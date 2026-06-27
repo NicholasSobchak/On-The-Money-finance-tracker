@@ -76,5 +76,10 @@ Testing/
 # Java compiled classes
 *.class
 
+# Xcode
+*.xcuserdata
+*.xcuserdatad
+DerivedData/
+
 # Environment files
 .env
