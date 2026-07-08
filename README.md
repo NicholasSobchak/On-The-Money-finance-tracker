@@ -145,5 +145,5 @@ See [`engine/README.md`](engine/README.md) for the complete JSON response struct
 
 For the Java API endpoints, requests and responses use JSON body format. Simple computations (net worth, assets, liabilities) are computed directly in Java. The Monte Carlo projection (`POST /api/project`) delegates to the C++ engine.
 
-# Use & Distribution
+## Use & Distribution
 _This project is for personal use only. It is not at all affiliated with any financial or institutional corporations. No gains or profits are made from this project, it is simply a tool for personal use._
