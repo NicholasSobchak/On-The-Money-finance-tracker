@@ -4,7 +4,7 @@ struct ContentView: View {
     var body: some View {
         TabView {
             PortfolioView()
-                .tabItem { Label("Portfolio", systemImage: "chart.bar.fill") }
+                .tabItem { Label("Portfolio", systemImage: "building.columns.fill") }
 
             AccountsView()
                 .tabItem { Label("Accounts", systemImage: "creditcard") }
