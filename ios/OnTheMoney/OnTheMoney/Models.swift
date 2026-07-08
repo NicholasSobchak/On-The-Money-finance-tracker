@@ -1,9 +1,7 @@
 import Foundation
 
-// When Swift decodes {"engineStatus": "online"} into this struct, it automatically maps the 
-// JSON key engineStatus to the property engineStatus.
-struct StatusResponse: Codable { // Codeable means that this struct can decode/encode itself from JSON
-    let engineStatus: String // engineStatus is the exact JSON key "engineStatus" from my java code
+struct StatusResponse: Codable {
+    let engineStatus: String
 }
 
 struct NetWorthResponse: Codable {
