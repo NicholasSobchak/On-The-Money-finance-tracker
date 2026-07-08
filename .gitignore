@@ -81,5 +81,8 @@ Testing/
 *.xcuserdatad
 DerivedData/
 
+# macOS
+.DS_Store
+
 # Environment files
 .env
