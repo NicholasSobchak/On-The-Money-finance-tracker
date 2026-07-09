@@ -1,13 +1,15 @@
-package com.onthemoney;
+package com.onthemoney; // package declaration
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.SpringApplication; // imports the bootstrap class
+import org.springframework.boot.autoconfigure.SpringBootApplication; // imports
 
-@SpringBootApplication
+// @SpringBootApplication
+
+@SpringBootApplication //
 public class OnTheMoneyApplication {
 
   public static void main(String[] args) {
-    SpringApplication.run(OnTheMoneyApplication.class, args);
+    SpringApplication.run(OnTheMoneyApplication.class, args); // starts the Spring app
   }
 }
 // End OnTheMoneyApplication

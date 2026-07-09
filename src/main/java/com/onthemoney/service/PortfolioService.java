@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onthemoney.entity.AccountEntity;
 import com.onthemoney.entity.AccountType;
+import com.onthemoney.entity.NetWorthHistoryEntity;
 import com.onthemoney.entity.TransactionEntity;
 import com.onthemoney.entity.TransactionType;
 import com.onthemoney.repository.AccountRepository;
+import com.onthemoney.repository.NetWorthHistoryRepository;
 import com.onthemoney.repository.TransactionRepository;
 import jakarta.annotation.PreDestroy;
 import java.io.*;
@@ -32,16 +34,19 @@ public class PortfolioService {
   private final ObjectMapper mapper;
   private final AccountRepository accountRepo;
   private final TransactionRepository transactionRepo;
+  private final NetWorthHistoryRepository netWorthHistoryRepo;
   private final Path enginePath;
 
   public PortfolioService(
       ObjectMapper mapper,
       AccountRepository accountRepo,
       TransactionRepository transactionRepo,
+      NetWorthHistoryRepository netWorthHistoryRepo,
       @Value("${engine.binary-path:engine/build/src/run_engine}") String enginePathStr) {
     this.mapper = mapper;
     this.accountRepo = accountRepo;
     this.transactionRepo = transactionRepo;
+    this.netWorthHistoryRepo = netWorthHistoryRepo;
     this.enginePath = Path.of(enginePathStr).toAbsolutePath().normalize();
   }
 
@@ -91,6 +96,17 @@ public class PortfolioService {
 
   public boolean inTheGreen() {
     return netWorth().compareTo(BigDecimal.ZERO) >= 0;
+  }
+
+  public List<NetWorthHistoryEntity> getNetWorthHistory() {
+    return netWorthHistoryRepo.findAllByOrderByDateAsc();
+  }
+
+  public void recordSnapshot() {
+    var entity = new NetWorthHistoryEntity();
+    entity.setNetWorth(netWorth());
+    entity.setDate(LocalDate.now());
+    netWorthHistoryRepo.save(entity);
   }
 
   // Engine for heavy computation (lazy-start)

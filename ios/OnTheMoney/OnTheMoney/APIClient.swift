@@ -58,6 +58,18 @@ class APIClient {
         return try JSONDecoder().decode(InTheGreenResponse.self, from: data)
     }
 
+    func getNetWorthHistory() async throws -> [NetWorthHistory] {
+        let url = try makeURL(path: "net-worth/history")
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([NetWorthHistory].self, from: data)
+    }
+
+    func recordNetWorthSnapshot() async throws {
+        var request = URLRequest(url: try makeURL(path: "net-worth/snapshot"))
+        request.httpMethod = "POST"
+        let (_, _) = try await URLSession.shared.data(for: request)
+    }
+
     // MARK: - Projection
 
     func projectRetirement(initialBalance: Double = 10000, monthlyContribution: Double = 500, returnRate: Double = 7, years: Int = 30, simulations: Int = 10000) async throws -> ProjectionResponse {

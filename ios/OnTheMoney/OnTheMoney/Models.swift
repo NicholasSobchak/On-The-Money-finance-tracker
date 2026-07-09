@@ -46,3 +46,9 @@ struct Transaction: Codable, Identifiable {
     let date: String
     let type: String
 }
+
+struct NetWorthHistory: Codable, Identifiable {
+    let id: Int
+    let netWorth: Double
+    let date: String
+}

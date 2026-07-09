@@ -10,7 +10,7 @@ repos:
   - id: spotless
     name: spotless
     description: Format Java with Spotless (google-java-format)
-    entry: bash -c 'source "$HOME/.sdkman/bin/sdkman-init.sh" && ./gradlew spotlessApply'
+    entry: bash -c './gradlew spotlessApply'
     language: system
     files: \.java$
     pass_filenames: false

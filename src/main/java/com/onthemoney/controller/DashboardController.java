@@ -15,27 +15,32 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api") // route prefix (relativeTo: url)
 public class DashboardController {
 
   private final PortfolioService portfolioService;
-  private final ObjectMapper mapper;
+  private final ObjectMapper mapper; // handles all JSON serialization
 
   public DashboardController(PortfolioService portfolioService, ObjectMapper mapper) {
     this.portfolioService = portfolioService;
     this.mapper = mapper;
   }
 
-  @GetMapping("/")
+  @GetMapping("/") // Spring Annotation (root)
   public String index() {
     return "Greetings from the Dashboard Controller";
   }
 
   @GetMapping("/status")
-  public JsonNode getEngineStatus() {
-    var status = mapper.createObjectNode();
-    status.put("engineStatus", portfolioService.isRunning() ? "online" : "offline");
-    return status;
+  public JsonNode getEngineStatus() { // return JsonNode (returns a JSON object)
+    var status = mapper.createObjectNode(); // ObjectNode (a subclass os Jsonnode
+    status.put(
+        "engineStatus",
+        portfolioService.isRunning()
+            ? "online"
+            : "offline"); // add stirng field to JSON object (key : value)
+    return status; // Spring serializes status to the HTTP resposne body as {"engineStatus":
+    // "online"}
   }
 
   // Computation endpoints
@@ -75,28 +80,47 @@ public class DashboardController {
     return result;
   }
 
+  @GetMapping("/net-worth/history")
+  public JsonNode getNetWorthHistory() {
+    return mapper.valueToTree(portfolioService.getNetWorthHistory());
+  }
+
+  @PostMapping("/net-worth/snapshot")
+  @ResponseStatus(HttpStatus.CREATED)
+  public JsonNode recordSnapshot() {
+    portfolioService.recordSnapshot();
+    var result = mapper.createObjectNode();
+    result.put("status", "recorded");
+    return result; // return {"status": "recorded"}
+  }
+
   @PostMapping("/project")
-  public JsonNode projectRetirement(
-      @RequestParam(defaultValue = "10000") @Positive double initialBalance,
-      @RequestParam(defaultValue = "500") @Positive double monthlyContribution,
-      @RequestParam(defaultValue = "7") double returnRate,
-      @RequestParam(defaultValue = "30") @Positive int years,
-      @RequestParam(defaultValue = "10000") @Positive int simulations)
-      throws IOException {
-    return portfolioService.projectRetirement(
-        initialBalance, monthlyContribution, returnRate / 100, years, simulations);
+  public JsonNode
+      projectRetirement( // @Positive annotation triggers a 400 Bad Request automatically if the
+          // value is zero or negative
+          @RequestParam(defaultValue = "10000") @Positive double initialBalance,
+          @RequestParam(defaultValue = "500") @Positive double monthlyContribution,
+          @RequestParam(defaultValue = "7") double returnRate,
+          @RequestParam(defaultValue = "30") @Positive int years,
+          @RequestParam(defaultValue = "10000") @Positive int simulations)
+          throws
+              IOException { // can throw IOException because the service writes and reads from a C++
+    // process, Spring will catch it and return a 500 Internal Server Error
+    return portfolioService
+        .projectRetirement( // pass return value straight through (JSON read from stdout)
+            initialBalance, monthlyContribution, returnRate / 100, years, simulations);
   }
 
   // Account endpoints
 
   @PostMapping("/accounts")
-  @ResponseStatus(HttpStatus.CREATED)
+  @ResponseStatus(HttpStatus.CREATED) // overrides the default 200 OK with 201 Created
   public JsonNode addAccount(
       @RequestParam String name,
       @RequestParam @Positive BigDecimal balance,
       @RequestParam AccountType accType) {
     var account = portfolioService.addAccount(name, balance, accType);
-    return mapper.valueToTree(account);
+    return mapper.valueToTree(account); // convert into JsonNode
   }
 
   @GetMapping("/accounts")
