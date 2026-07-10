@@ -50,23 +50,23 @@ iOS financial tracker that holds all your finances in one spot so money is never
 ## Build
 - `./gradlew bootRun` — backend on `:8080`
 
-# What I'm working on
+## What I'm working on
 - PortfolioView page
   - Net Worth in your face
   - interactive graph of net worth much like Robinhood or Schwab 
 
-# What I've finished
+## What I've finished
 - This section is underdeveloped as i got this idea midway through the project, i will paste my personal notes here:
 
-# C++ (engine)
+#### C++ (engine)
   - add logging
   - investment value calculation (live market)
   - stream data from Java to C++ using C++ main function to coordinate function calls
   - create tests (catch2)
   - setup config with CMake, vcpkg, and clang
 
-# Java (API)
-### DONE
+#### Java (API)
+#### DONE
   - add deposit/withdraw, update/delete transactions, and filter transactions by account (or date)
   - add PUT, GET, POST, and DELETE mappings
   - add database clear 
@@ -77,8 +77,8 @@ iOS financial tracker that holds all your finances in one spot so money is never
   - create transaction logic
   - build and send JSON data to C++ pipeline (portfolioservice and dashboard controller)
 
-# Swift (Frontend)
-### Done
+#### Swift (Frontend)
+#### Done
   - Show Net Worth (ALL API ENDPOINTS)
     - Create a function in APIClient that calls GET /api/net-worth
     - Display it in ContentView as a big number with $ formatting
