@@ -1,66 +1,73 @@
 import SwiftUI
 import Charts
 
+// this file is heavily commented for learning purposes (this is my first ios program & i just learned swift)
+
 struct PortfolioView: View {
+    // everytime @State changes the body reevaluates
     @State private var netWorth = 0.0
-    @State private var originalNetWorth = 0.0
-    @State private var history: [NetWorthHistory] = []
-    @State private var selectedRange = "ALL"
-    @State private var selectedDate: String?
-    @State private var cachedFilteredHistory: [NetWorthHistory] = []
-    @State private var cachedYDomain: ClosedRange<Double> = 0...20000
+    @State private var originalNetWorth = 0.0 // real net worth from the API
+    @State private var history: [NetWorthHistory] = [] // full dataset (daily points) @State private var selectedRange = "ALL" // range of the graph
+    @State private var selectedDate: String? // point where user is touching
+    @State private var cachedFilteredHistory: [NetWorthHistory] = [] // eagerly computed (when the range changes) to avoid recomputation during body run on (every single drag frame)
+    @State private var cachedYDomain: ClosedRange<Double> = 0...20000 // eagerly computed min/max range
 
     let ranges = ["1W", "1M", "3M", "YTD", "1Y", "ALL"]
 
+    // lambdas run when sturct is created
     private let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
+        let f = DateFormatter() // class from Foundation (imported by SwiftUI)
+        f.dateFormat = "yyyy-MM-dd" // parses date string from the API
         return f
     }()
     private let dateOnlyFormatter: DateFormatter = {
         let f = DateFormatter()
-        f.dateFormat = "MMM d, yyyy"
+        f.dateFormat = "MMM d, yyyy" // formats for display
         return f
     }()
 
-    var isHovering: Bool { selectedDate != nil }
+    var isHovering: Bool { selectedDate != nil } // true when user is touching the chart
 
     var hoverDate: String {
         guard let d = selectedDate.flatMap({ dateFormatter.date(from: $0) }) else { return "" }
         return dateOnlyFormatter.string(from: d)
     }
 
+    // returns currently selected NetWorthHistory record (if not hovering show overall gain/loss)
     var hoveredEntry: NetWorthHistory? {
-        guard cachedFilteredHistory.count >= 2 else { return nil }
+        guard cachedFilteredHistory.count >= 2 else { return nil } // at least 2 data points for meaningful data
         if let date = selectedDate {
-            return cachedFilteredHistory.first(where: { $0.date == date })
+            return cachedFilteredHistory.first(where: { $0.date == date }) // find the first NetWorthHistory object where .date matches the selectedDate ($0 gets the first argument)
         }
         return cachedFilteredHistory.last
     }
 
     var change: Double {
         guard cachedFilteredHistory.count >= 2, let entry = hoveredEntry else { return 0 }
-        return entry.netWorth - cachedFilteredHistory.first!.netWorth
+        return entry.netWorth - cachedFilteredHistory.first!.netWorth 
     }
 
     var changePercent: Double {
         guard cachedFilteredHistory.count >= 2, let entry = hoveredEntry, cachedFilteredHistory.first!.netWorth != 0 else { return 0 }
-        return (change / cachedFilteredHistory.first!.netWorth) * 100
+        return (change / cachedFilteredHistory.first!.netWorth) * 100 // .111 * 100 -> 11.1
     }
 
     var isPositive: Bool { change >= 0 }
 
+    // converts date string like "2026-01-25" to "January 25, 2026"
     func formattedLabel(for dateString: String) -> String {
         guard let d = dateFormatter.date(from: dateString) else { return dateString }
         return dateOnlyFormatter.string(from: d)
     }
 
+    // all points up to and including the selected date (full opacity)
     var leftSegment: [NetWorthHistory] {
         guard let selected = selectedDate else { return cachedFilteredHistory }
         let idx = cachedFilteredHistory.firstIndex(where: { $0.date == selected }) ?? cachedFilteredHistory.count - 1
         return Array(cachedFilteredHistory.prefix(idx + 1))
     }
 
+    // all points after the selected date  (rendered 30% opacity)
     var rightSegment: [NetWorthHistory] {
         guard let selected = selectedDate,
               let idx = cachedFilteredHistory.firstIndex(where: { $0.date == selected }),
@@ -68,7 +75,9 @@ struct PortfolioView: View {
         return Array(cachedFilteredHistory.suffix(from: idx))
     }
 
+    // called only when slectedRnage or history changes, this fixes performance
     func recomputeCache() {
+        // compute cutoff date based on selectedRange 
         let cutoff: Date?
         switch selectedRange {
         case "1W": cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date())
@@ -95,9 +104,12 @@ struct PortfolioView: View {
         cachedYDomain = (min - padding)...(max + padding)
     }
 
+    // display on screen
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+
+                // header: Net Worth label, big number, change arrow
                 VStack(alignment: .leading, spacing: 4) {
                     Text(isHovering ? hoverDate : "Net Worth")
                         .font(.custom("Palatino", size: 16))
@@ -119,6 +131,7 @@ struct PortfolioView: View {
                 .padding(.leading, 16)
                 .padding(.top, 24)
 
+                // chart: two line segments (full opacity + dimmed)
                 Chart {
                     ForEach(leftSegment, id: \.id) { point in
                         LineMark(
@@ -146,6 +159,7 @@ struct PortfolioView: View {
                 .frame(height: 260)
                 .padding(.horizontal)
                 .padding(.top, 8)
+                // overlay: touch gesture + selection indicators
                 .chartOverlay { proxy in
                     GeometryReader { geometry in
                         let plot = geometry[proxy.plotAreaFrame]
@@ -181,6 +195,7 @@ struct PortfolioView: View {
                             Rectangle()
                                 .fill(.clear)
                                 .contentShape(Rectangle())
+                                // catches tap + drag on the chart
                                 .gesture(
                                     DragGesture(minimumDistance: 0)
                                         .onChanged { value in
@@ -202,6 +217,7 @@ struct PortfolioView: View {
                     }
                 }
 
+                // time range buttons: 1W - ALL
                 HStack(spacing: 0) {
                     ForEach(ranges, id: \.self) { range in
                         Button {
@@ -227,6 +243,7 @@ struct PortfolioView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
 
+                // Spacer() pushes everything to the top
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
