@@ -17,11 +17,11 @@ struct TotalLiabilitiesResponse: Codable {
 }
 
 struct InTheRedResponse: Codable {
-    let inTheRed: Double
+    let inTheRed: Bool 
 }
 
 struct InTheGreenResponse: Codable {
-    let inTheGreen: Double
+    let inTheGreen: Bool 
 }
 
 struct ProjectionResponse: Codable {

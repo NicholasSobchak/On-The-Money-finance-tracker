@@ -10,8 +10,6 @@ struct OnTheMoneyApp: App {
         UINavigationBar.appearance().titleTextAttributes = [
             .font: UIFont(name: "Palatino", size: 17) ?? .systemFont(ofSize: 17)
         ]
-        UITabBar.appearance().backgroundColor = UIColor(Color.themeSurface)
-        UITabBar.appearance().unselectedItemTintColor = UIColor(Color.themeMuted)
     }
 
     var body: some Scene {

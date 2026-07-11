@@ -185,6 +185,7 @@ public class DashboardController {
     if (t == null) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "account not found");
     }
+    portfolioService.recordSnapshot();
     return mapper.valueToTree(t);
   }
 
@@ -200,6 +201,7 @@ public class DashboardController {
     if (t == null) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "account not found");
     }
+    portfolioService.recordSnapshot();
     return mapper.valueToTree(t);
   }
 
@@ -217,6 +219,7 @@ public class DashboardController {
     if (t == null) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "account not found");
     }
+    portfolioService.recordSnapshot();
     return mapper.valueToTree(t);
   }
 

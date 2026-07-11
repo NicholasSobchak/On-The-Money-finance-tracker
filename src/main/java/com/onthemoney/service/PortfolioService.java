@@ -19,6 +19,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -103,10 +104,20 @@ public class PortfolioService {
   }
 
   public void recordSnapshot() {
-    var entity = new NetWorthHistoryEntity();
+    var today = LocalDate.now();
+    var existing = netWorthHistoryRepo.findByDate(today);
+    var entity =
+        existing.isEmpty()
+            ? new NetWorthHistoryEntity()
+            : existing.get(0); // UPDATE data in the existing entity (if one already exists)
     entity.setNetWorth(netWorth());
-    entity.setDate(LocalDate.now());
+    entity.setDate(today);
     netWorthHistoryRepo.save(entity);
+  }
+
+  @Scheduled(fixedRate = 86_400_000) // every 24 hours
+  public void scheduledSnapshot() {
+    recordSnapshot();
   }
 
   // Engine for heavy computation (lazy-start)
