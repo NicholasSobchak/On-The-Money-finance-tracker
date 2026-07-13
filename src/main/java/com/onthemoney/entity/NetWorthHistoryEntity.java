@@ -40,4 +40,4 @@ public class NetWorthHistoryEntity {
   public void setDate(LocalDate date) {
     this.date = date;
   }
-}
+} // END NetWorthHistoryEntity

@@ -22,6 +22,8 @@ public class AccountEntity {
   @Enumerated(EnumType.STRING)
   private AccountType accType;
 
+  private String plaidAccountId;
+
   public Long getId() {
     return id;
   }
@@ -52,6 +54,14 @@ public class AccountEntity {
 
   public void setAccType(AccountType accType) {
     this.accType = accType;
+  }
+
+  public String getPlaidAccountId() {
+    return plaidAccountId;
+  }
+
+  public void setPlaidAccountId(String plaidAccountId) {
+    this.plaidAccountId = plaidAccountId;
   }
 }
 // End AccountEntity

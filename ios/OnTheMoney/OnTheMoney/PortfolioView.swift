@@ -244,7 +244,7 @@ struct PortfolioView: View {
                     //   geometry[proxy.plotAreaFrame] — returns the plot area's CGRect
                     //   within the overlay (where the actual line marks are drawn).
                     GeometryReader { geometry in
-                        let plot = geometry[proxy.plotAreaFrame]
+                        let plot = proxy.plotFrame.map { geometry[$0] } ?? CGRect(x: 0, y: 0, width: 300, height: 260)
                         let origin = plot.origin // top-left corner of the plot area
                         ZStack(alignment: .topLeading) {
                             if let selected = selectedDate,
@@ -370,12 +370,12 @@ struct PortfolioView: View {
                                     .frame(width: 120, alignment: .leading)
 
                                 GeometryReader { geo in
+                                    let barWidth = max(0, geo.size.width * pct)
                                     RoundedRectangle(cornerRadius: 3)
                                         .fill(Color.white.opacity(0.15))
-                                        .frame(width: geo.size.width)
                                     RoundedRectangle(cornerRadius: 3)
                                         .fill(Color.white)
-                                        .frame(width: geo.size.width * pct)
+                                        .frame(width: barWidth)
                                 }
                                 .frame(height: 8)
 

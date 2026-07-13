@@ -42,6 +42,9 @@ dependencies {
 
     // 6. IN-MEMORY DB FOR TESTS: H2 lets tests run without a real PostgreSQL instance (e.g. in CI)
     testRuntimeOnly 'com.h2database:h2'
+
+    // 7. PLAID INTEGRATION: To connect Security Plus FCU, Vanguard, and Schwab brokerage accounts
+    implementation 'com.plaid:plaid-java:9.0.0'
 }
 
 spotless {

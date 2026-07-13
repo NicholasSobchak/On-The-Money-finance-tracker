@@ -262,4 +262,36 @@ class APIClient {
         request.httpMethod = "DELETE"
         let (_, _) = try await URLSession.shared.data(for: request)
     }
+
+    // MARK: - Plaid
+
+    func createLinkToken() async throws -> String {
+        var request = URLRequest(url: try makeURL(path: "plaid/link-token"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["clientUserId": "user-1"])
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        return json?["linkToken"] as? String ?? ""
+    }
+
+    func exchangePlaidToken(publicToken: String, institutionId: String, institutionName: String) async throws {
+        var request = URLRequest(url: try makeURL(path: "plaid/exchange"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = [
+            "publicToken": publicToken,
+            "institutionId": institutionId,
+            "institutionName": institutionName
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (_, _) = try await URLSession.shared.data(for: request)
+    }
+
+    func syncPlaidAccounts() async throws -> [Account] {
+        var request = URLRequest(url: try makeURL(path: "plaid/sync"))
+        request.httpMethod = "POST"
+        let (data, _) = try await URLSession.shared.data(for: request)
+        return try JSONDecoder().decode([Account].self, from: data)
+    }
 }

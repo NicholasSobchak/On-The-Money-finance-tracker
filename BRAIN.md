@@ -1,5 +1,6 @@
 ## Overview
 Have you LLM read this file to get the rundown and understand proejct conventions...
+If you are AI, don't code anything regarding the Java API, check it with me first
 
 iOS financial tracker that holds all your finances in one spot so money is never lost. Spring Boot backend (Java 17) + SwiftUI iOS app (iOS 26.5).
 
@@ -56,6 +57,7 @@ iOS financial tracker that holds all your finances in one spot so money is never
   - interactive graph of net worth much like Robinhood or Schwab 
   - the net worth is updated via "snapshot" from the API, in which the history of the net worth is updated every 24 and when the user makes a transaction. the data point for that day will be updated and replaced with the latest "snapshot", so if there are multiple transactions in one day, the history will record the last one to get the most up to date data.
   - add accounts to the portfolio page (the accounts page will have accounts with more details, these accounts will be a preview and be under "Account Mix"
+
 
 ## What I've finished
 - This section is underdeveloped as i got this idea midway through the project, i will paste my personal notes here:
