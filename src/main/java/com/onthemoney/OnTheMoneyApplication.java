@@ -10,8 +10,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class OnTheMoneyApplication {
 
   public static void main(String[] args) {
-    Dotenv dotenv = Dotenv.load();
-    dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
+    try {
+      Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+      dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
+    } catch (Exception ignored) {
+    }
     SpringApplication.run(OnTheMoneyApplication.class, args);
   }
 }

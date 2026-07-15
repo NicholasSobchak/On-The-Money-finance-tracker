@@ -3,6 +3,8 @@ package com.onthemoney.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onthemoney.entity.AccountType;
+import com.onthemoney.entity.CreditScoreEntity;
+import com.onthemoney.repository.CreditScoreRepository;
 import com.onthemoney.service.PortfolioService;
 import jakarta.validation.constraints.Positive;
 import java.io.IOException;
@@ -19,10 +21,15 @@ import org.springframework.web.server.ResponseStatusException;
 public class DashboardController {
 
   private final PortfolioService portfolioService;
+  private final CreditScoreRepository creditScoreRepo;
   private final ObjectMapper mapper; // handles all JSON serialization
 
-  public DashboardController(PortfolioService portfolioService, ObjectMapper mapper) {
+  public DashboardController(
+      PortfolioService portfolioService,
+      CreditScoreRepository creditScoreRepo,
+      ObjectMapper mapper) {
     this.portfolioService = portfolioService;
+    this.creditScoreRepo = creditScoreRepo;
     this.mapper = mapper;
   }
 
@@ -256,6 +263,45 @@ public class DashboardController {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void deleteTransaction(@PathVariable Long id) {
     portfolioService.deleteTransaction(id);
+  }
+
+  // Credit score endpoints
+
+  @GetMapping("/credit-score")
+  public JsonNode getCreditScore() {
+    var result = mapper.createObjectNode();
+    var recent = creditScoreRepo.findTop2ByOrderByDateDescIdDesc();
+    if (!recent.isEmpty()) {
+      CreditScoreEntity latest = recent.get(0);
+      result.put("score", latest.getScore());
+      result.put("date", latest.getDate() != null ? latest.getDate().toString() : null);
+      result.put("id", latest.getId());
+      if (recent.size() > 1) {
+        result.put("previousScore", recent.get(1).getScore());
+      } else {
+        result.putNull("previousScore");
+      }
+    } else {
+      result.put("score", 0);
+      result.put("date", (String) null);
+      result.put("id", 0);
+      result.putNull("previousScore");
+    }
+    return result;
+  }
+
+  @PostMapping("/credit-score")
+  @ResponseStatus(HttpStatus.CREATED)
+  public JsonNode recordCreditScore(@RequestParam Integer score) {
+    CreditScoreEntity cs = new CreditScoreEntity();
+    cs.setScore(score);
+    cs.setDate(LocalDate.now());
+    creditScoreRepo.save(cs);
+    var result = mapper.createObjectNode();
+    result.put("score", cs.getScore());
+    result.put("date", cs.getDate().toString());
+    result.put("id", cs.getId());
+    return result;
   }
 
   private static LocalDate parseDate(String date) {

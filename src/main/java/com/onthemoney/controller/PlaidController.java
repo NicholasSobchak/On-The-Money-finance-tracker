@@ -80,10 +80,23 @@ public class PlaidController {
     return plaidService.syncAccounts();
   }
 
+  // POST /api/plaid/sandbox-connect - bypass Link for sandbox, exchange token + sync
+  @PostMapping("/sandbox-connect")
+  public List<AccountEntity> sandboxConnect() {
+    return plaidService.sandboxConnect();
+  }
+
   // DELETE /api/plaid/item/{id} - remove a connected institution
   @DeleteMapping("/item/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void removeItem(@PathVariable Long id) {
     plaidService.removeItem(id);
+  }
+
+  // DELETE /api/plaid/accounts - remove all Plaid-synced accounts
+  @DeleteMapping("/accounts")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void deletePlaidAccounts() {
+    plaidService.deletePlaidAccounts();
   }
 }

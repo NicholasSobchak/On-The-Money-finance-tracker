@@ -25,9 +25,19 @@ struct InTheGreenResponse: Codable {
 }
 
 struct ProjectionResponse: Codable {
+    let status: String?
     let finalBalance: Double?
+    let worst10: Double?
     let median: Double?
-    let percentiles: [String: Double]?
+    let best10: Double?
+    let mean: Double?
+    let simulations: Int?
+    let percentiles: [Double]?
+    let worst10Trajectory: [Double]?
+    let medianTrajectory: [Double]?
+    let best10Trajectory: [Double]?
+    let meanTrajectory: [Double]?
+    let years: Int?
 }
 
 struct Account: Codable, Identifiable {
@@ -35,6 +45,8 @@ struct Account: Codable, Identifiable {
     let name: String
     let balance: Double
     let accType: String
+    var accountNumber: String?
+    var interestRate: Double?
 }
 
 struct Transaction: Codable, Identifiable {
@@ -51,4 +63,42 @@ struct NetWorthHistory: Codable, Identifiable {
     let id: Int
     let netWorth: Double
     let date: String
+}
+
+struct CreditScoreResponse: Codable {
+    let score: Int
+    let date: String?
+    let id: Int
+    let previousScore: Int?
+}
+
+struct StockQuote: Codable, Identifiable {
+    let symbol: String
+    var name: String
+    let currentPrice: Double
+    let change: Double
+    let percentChange: Double
+    let high: Double
+    let low: Double
+    let open: Double
+    let previousClose: Double
+    var addedDate: String?
+    var id: String { symbol }
+}
+
+struct MarketOverview: Codable {
+    let indices: [StockQuote]
+}
+
+struct SearchResult: Codable, Identifiable {
+    let symbol: String
+    let description: String
+    let type: String
+    var id: String { symbol }
+}
+
+struct StockCandle: Codable {
+    let s: String
+    let t: [Int]
+    let c: [Double]
 }

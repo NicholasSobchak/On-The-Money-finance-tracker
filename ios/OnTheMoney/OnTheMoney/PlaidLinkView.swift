@@ -17,24 +17,27 @@ struct PlaidLinkView: UIViewRepresentable {
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
-        webView.scrollView.isScrollEnabled = false
 
         let js = """
-        window.addEventListener('message', function(event) {
-            if (event.data && event.data.public_token) {
-                window.webkit.messageHandlers.plaidHandler.postMessage({
-                    public_token: event.data.public_token,
-                    institution_id: event.data.institution_id || '',
-                    institution_name: event.data.institution_name || ''
-                });
+        (function() {
+            function sendToNative(data) {
+                if (data && data.public_token) {
+                    window.webkit.messageHandlers.plaidHandler.postMessage({
+                        public_token: data.public_token,
+                        institution_id: data.institution_id || '',
+                        institution_name: data.institution_name || ''
+                    });
+                }
             }
-        });
+            window.addEventListener('message', function(event) {
+                sendToNative(event.data);
+            });
+        })();
         """
-        let script = WKUserScript(source: js, injectionTime: .atDocumentEnd, forMainFrameOnly: false)
+        let script = WKUserScript(source: js, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         contentController.addUserScript(script)
 
-        let redirectUri = "http://localhost/plaid-callback"
-        let urlString = "https://cdn.link.plaid.com/link.html?token=\(linkToken)&redirectUri=\(redirectUri.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? redirectUri)"
+        let urlString = "https://cdn.plaid.com/link/v2/stable/link.html?isWebview=true&token=\(linkToken)"
         webView.load(URLRequest(url: URL(string: urlString)!))
 
         return webView
@@ -69,27 +72,7 @@ struct PlaidLinkView: UIViewRepresentable {
             decidePolicyFor navigationAction: WKNavigationAction,
             decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
         ) {
-            if let url = navigationAction.request.url,
-               url.absoluteString.contains("plaid-callback") {
-                decisionHandler(.cancel)
-                if !didComplete {
-                    didComplete = true
-                    let fragment = url.fragment ?? ""
-                    let params = fragment.components(separatedBy: "&").reduce(into: [String: String]()) { dict, pair in
-                        let parts = pair.components(separatedBy: "=")
-                        if parts.count == 2 { dict[parts[0]] = parts[1] }
-                    }
-                    if let token = params["public-token"] {
-                        let instId = params["institution_id"] ?? ""
-                        let instName = params["institution_name"] ?? ""
-                        parent.onComplete(token, instId, instName)
-                    } else {
-                        parent.onCancel()
-                    }
-                }
-            } else {
-                decisionHandler(.allow)
-            }
+            decisionHandler(.allow)
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

@@ -70,6 +70,22 @@ class APIClient {
         let (_, _) = try await URLSession.shared.data(for: request)
     }
 
+    // MARK: - Credit Score
+
+    func getCreditScore() async throws -> CreditScoreResponse {
+        let (data, _) = try await URLSession.shared.data(from: try makeURL(path: "credit-score"))
+        return try JSONDecoder().decode(CreditScoreResponse.self, from: data)
+    }
+
+    func recordCreditScore(score: Int) async throws -> CreditScoreResponse {
+        var request = URLRequest(url: try makeURL(path: "credit-score"))
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = "score=\(score)".data(using: .utf8)
+        let (data, _) = try await URLSession.shared.data(for: request)
+        return try JSONDecoder().decode(CreditScoreResponse.self, from: data)
+    }
+
     // MARK: - Projection
 
     func projectRetirement(initialBalance: Double = 10000, monthlyContribution: Double = 500, returnRate: Double = 7, years: Int = 30, simulations: Int = 10000) async throws -> ProjectionResponse {
@@ -293,5 +309,65 @@ class APIClient {
         request.httpMethod = "POST"
         let (data, _) = try await URLSession.shared.data(for: request)
         return try JSONDecoder().decode([Account].self, from: data)
+    }
+
+    func sandboxConnect() async throws -> [Account] {
+        var request = URLRequest(url: try makeURL(path: "plaid/sandbox-connect"))
+        request.httpMethod = "POST"
+        let (data, _) = try await URLSession.shared.data(for: request)
+        return try JSONDecoder().decode([Account].self, from: data)
+    }
+
+    // MARK: - Stocks
+
+    func getStockQuote(symbol: String) async throws -> StockQuote {
+        let url = try makeURL(path: "stocks/quote?symbol=\(symbol)")
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(StockQuote.self, from: data)
+    }
+
+    func searchStocks(query: String) async throws -> [SearchResult] {
+        let url = try makeURL(path: "stocks/search?q=\(query)")
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([SearchResult].self, from: data)
+    }
+
+    func getMarketOverview() async throws -> MarketOverview {
+        let url = try makeURL(path: "stocks/overview")
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(MarketOverview.self, from: data)
+    }
+
+    func getWatchlist() async throws -> [StockQuote] {
+        let url = try makeURL(path: "stocks/watchlist")
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([StockQuote].self, from: data)
+    }
+
+    func addToWatchlist(symbol: String) async throws {
+        var request = URLRequest(url: try makeURL(path: "stocks/watchlist?symbol=\(symbol)"))
+        request.httpMethod = "POST"
+        let (_, _) = try await URLSession.shared.data(for: request)
+    }
+
+    func removeFromWatchlist(symbol: String) async throws {
+        var request = URLRequest(url: try makeURL(path: "stocks/watchlist/\(symbol)"))
+        request.httpMethod = "DELETE"
+        let (_, _) = try await URLSession.shared.data(for: request)
+    }
+
+    func getStockCandles(symbol: String, resolution: String = "D", from: Int, to: Int) async throws -> StockCandle {
+        guard var components = URLComponents(url: try makeURL(path: "stocks/candles"), resolvingAgainstBaseURL: true) else {
+            throw URLError(.badURL)
+        }
+        components.queryItems = [
+            URLQueryItem(name: "symbol", value: symbol),
+            URLQueryItem(name: "resolution", value: resolution),
+            URLQueryItem(name: "from", value: String(from)),
+            URLQueryItem(name: "to", value: String(to))
+        ]
+        guard let url = components.url else { throw URLError(.badURL) }
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(StockCandle.self, from: data)
     }
 }

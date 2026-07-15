@@ -7,6 +7,7 @@ import com.onthemoney.entity.PlaidItemEntity;
 import com.onthemoney.repository.AccountRepository;
 import com.onthemoney.repository.PlaidItemRepository;
 import com.plaid.client.ApiClient;
+import com.plaid.client.JSON;
 import com.plaid.client.model.*;
 import com.plaid.client.request.PlaidApi;
 import java.io.IOException;
@@ -39,8 +40,49 @@ public class PlaidService {
       @Value("${plaid.client-id}") String clientId,
       @Value("${plaid.secret}") String secret,
       @Value("${plaid.env}") String env) {
-    ApiClient apiClient = new ApiClient(clientId, secret);
+    HashMap<String, String> apiKeys = new HashMap<>();
+    apiKeys.put("clientId", clientId);
+    apiKeys.put("secret", secret);
+    ApiClient apiClient = new ApiClient(apiKeys);
     apiClient.setPlaidAdapter(env.equals("production") ? ApiClient.Production : ApiClient.Sandbox);
+
+    // Patch Plaid SDK's Gson to silently handle unknown Products enum values
+    // (new Plaid features like identity_match aren't in SDK v9.0.0)
+    try {
+      java.lang.reflect.Field jsonField = ApiClient.class.getDeclaredField("json");
+      jsonField.setAccessible(true);
+      JSON plaidJson = (JSON) jsonField.get(apiClient);
+      com.google.gson.Gson patchedGson =
+          plaidJson
+              .getGson()
+              .newBuilder()
+              .registerTypeAdapter(
+                  Products.class,
+                  (com.google.gson.JsonDeserializer<Products>)
+                      (json, typeOfT, context) -> {
+                        if (json.isJsonNull()) return null;
+                        String val = json.getAsString();
+                        try {
+                          return Products.fromValue(val);
+                        } catch (IllegalArgumentException e) {
+                          return Products.TRANSACTIONS;
+                        }
+                      })
+              .create();
+      plaidJson.setGson(patchedGson);
+
+      // Rebuild Retrofit adapter to use the patched Gson
+      String baseUrl = apiClient.getAdapterBuilder().build().baseUrl().toString();
+      apiClient.setAdapterBuilder(
+          new retrofit2.Retrofit.Builder()
+              .baseUrl(baseUrl)
+              .addConverterFactory(retrofit2.converter.scalars.ScalarsConverterFactory.create())
+              .addConverterFactory(
+                  retrofit2.converter.gson.GsonConverterFactory.create(patchedGson)));
+    } catch (Exception e) {
+      // If reflection fails, proceed with default Gson (may fail on unknown enums)
+    }
+
     this.plaidClient = apiClient.createService(PlaidApi.class);
     this.plaidItemRepo = plaidItemRepo;
     this.accountRepo = accountRepo;
@@ -55,12 +97,16 @@ public class PlaidService {
         new LinkTokenCreateRequest()
             .user(user)
             .clientName("On The Money")
-            .products(Arrays.asList(Products.BALANCE))
+            .products(Arrays.asList(Products.TRANSACTIONS))
             .countryCodes(Arrays.asList(CountryCode.US))
             .language("en");
 
     try {
       Response<LinkTokenCreateResponse> response = plaidClient.linkTokenCreate(request).execute();
+      if (!response.isSuccessful() || response.body() == null) {
+        String errorBody = response.errorBody() != null ? response.errorBody().string() : "unknown";
+        throw new RuntimeException("Plaid API error " + response.code() + ": " + errorBody);
+      }
       return response.body().getLinkToken();
     } catch (IOException e) {
       throw new RuntimeException("Failed to create Plaid link token", e);
@@ -186,6 +232,44 @@ public class PlaidService {
     }
 
     return accountRepo.findAll();
+  }
+
+  // 7. Sandbox-only: bypass Plaid Link by creating a public token directly
+  public String sandboxPublicTokenCreate() {
+    SandboxPublicTokenCreateRequest request =
+        new SandboxPublicTokenCreateRequest()
+            .institutionId("ins_109508")
+            .initialProducts(Arrays.asList(Products.TRANSACTIONS));
+
+    try {
+      Response<SandboxPublicTokenCreateResponse> response =
+          plaidClient.sandboxPublicTokenCreate(request).execute();
+      if (!response.isSuccessful() || response.body() == null) {
+        String errorBody = response.errorBody() != null ? response.errorBody().string() : "unknown";
+        throw new RuntimeException("Plaid sandbox error " + response.code() + ": " + errorBody);
+      }
+      return response.body().getPublicToken();
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to create sandbox public token", e);
+    }
+  }
+
+  // 8. Sandbox connect: skip if already connected, otherwise create + exchange + sync
+  public List<AccountEntity> sandboxConnect() {
+    if (!plaidItemRepo.findAll().isEmpty()) {
+      return syncAccounts();
+    }
+    String publicToken = sandboxPublicTokenCreate();
+    exchangePublicToken(publicToken, "ins_109508", "First Platypus Bank");
+    return syncAccounts();
+  }
+
+  // 9. Delete all Plaid-synced accounts and clear plaid items
+  public void deletePlaidAccounts() {
+    List<AccountEntity> plaidAccounts =
+        accountRepo.findAll().stream().filter(a -> a.getPlaidAccountId() != null).toList();
+    accountRepo.deleteAll(plaidAccounts);
+    plaidItemRepo.deleteAll();
   }
 
   private AccountType mapPlaidType(String type, String subtype) {

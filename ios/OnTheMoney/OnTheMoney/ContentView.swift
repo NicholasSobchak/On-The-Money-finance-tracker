@@ -27,7 +27,7 @@ struct ContentView: View {
                 tabButton(icon: "person", title: "Profile", tag: 3)
             }
             .frame(height: 56)
-            .background(Color.black)
+            .background(Color(light: Color(red: 0.96, green: 0.93, blue: 0.86), dark: Color.themeSurface))
         }
     }
 
@@ -41,7 +41,7 @@ struct ContentView: View {
                 Text(title)
                     .font(.custom("Palatino", size: 10))
             }
-            .foregroundColor(selectedTab == tag ? .white : Color.themeMuted)
+            .foregroundColor(selectedTab == tag ? .themeAccent : Color.themeMuted)
             .frame(maxWidth: .infinity)
         }
     }
