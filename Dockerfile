@@ -20,6 +20,9 @@ COPY src src
 RUN ./gradlew bootJar --no-daemon
 
 FROM eclipse-temurin:17-jre
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 COPY --from=engine-builder /run_engine /app/run_engine
 COPY --from=java-builder /app/build/libs/*.jar /app/app.jar
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+RUN chown -R appuser:appuser /app
+USER appuser
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-Xmx512m", "-jar", "/app/app.jar"]

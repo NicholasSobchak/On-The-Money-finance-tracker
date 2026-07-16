@@ -2,15 +2,13 @@ services:
   db:
     image: postgres:16-alpine
     container_name: onthemoney-db
-    env_file: .env
     environment:
       POSTGRES_DB: onthemoney
       POSTGRES_USER: app
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U app -d onthemoney"]
       interval: 5s
@@ -20,16 +18,38 @@ services:
   app:
     build: .
     container_name: onthemoney-app
-    env_file: .env
     environment:
       DB_PASSWORD: ${DB_PASSWORD}
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/onthemoney
       ENGINE_BINARY_PATH: /app/run_engine
+      PLAID_CLIENT_ID: ${PLAID_CLIENT_ID}
+      PLAID_SECRET: ${PLAID_SECRET}
+      PLAID_ENV: ${PLAID_ENV:-production}
+      FINNHUB_API_KEY: ${FINNHUB_API_KEY}
+      API_KEY: ${API_KEY}
+      PLAID_REDIRECT_URI: ${PLAID_REDIRECT_URI:-}
     ports:
       - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: onthemoney-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:

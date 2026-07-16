@@ -32,6 +32,7 @@ public class PlaidService {
   private final PlaidItemRepository plaidItemRepo;
   private final AccountRepository accountRepo;
   private final ObjectMapper mapper;
+  private final String redirectUri;
 
   public PlaidService(
       PlaidItemRepository plaidItemRepo,
@@ -39,7 +40,8 @@ public class PlaidService {
       ObjectMapper mapper,
       @Value("${plaid.client-id}") String clientId,
       @Value("${plaid.secret}") String secret,
-      @Value("${plaid.env}") String env) {
+      @Value("${plaid.env}") String env,
+      @Value("${plaid.redirect-uri:}") String redirectUri) {
     HashMap<String, String> apiKeys = new HashMap<>();
     apiKeys.put("clientId", clientId);
     apiKeys.put("secret", secret);
@@ -87,6 +89,7 @@ public class PlaidService {
     this.plaidItemRepo = plaidItemRepo;
     this.accountRepo = accountRepo;
     this.mapper = mapper;
+    this.redirectUri = redirectUri;
   }
 
   // 1. Create link token for iOS Plaid Link
@@ -100,6 +103,10 @@ public class PlaidService {
             .products(Arrays.asList(Products.TRANSACTIONS))
             .countryCodes(Arrays.asList(CountryCode.US))
             .language("en");
+
+    if (redirectUri != null && !redirectUri.isEmpty()) {
+      request.setRedirectUri(redirectUri);
+    }
 
     try {
       Response<LinkTokenCreateResponse> response = plaidClient.linkTokenCreate(request).execute();

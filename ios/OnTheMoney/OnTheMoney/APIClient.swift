@@ -1,13 +1,28 @@
 import Foundation
 
 class APIClient {
+    #if DEBUG
     let base = URL(string: "http://localhost:8080/api/")!
+    private let apiKey = ""
+    #else
+    let base = URL(string: "http://136.107.239.150:8080/api/")!
+    private let apiKey = "otm_prod_Kx8mN2pQr5tW7yB3vC6fH9jL1dG4sA0e"
+    #endif
 
     private func makeURL(path: String) throws -> URL {
         guard let url = URL(string: path, relativeTo: base) else {
             throw URLError(.badURL)
         }
         return url
+    }
+
+    private func authorizedRequest(url: URL, method: String = "GET") -> URLRequest {
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        if !apiKey.isEmpty {
+            request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+        }
+        return request
     }
 
     // MARK: - Status

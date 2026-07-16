@@ -926,6 +926,36 @@ struct PortfolioView: View {
                     }
                 }
 
+                // ── PROJECTIONS ──
+                NavigationLink {
+                    ProjectionsView()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.system(size: 14))
+                            .foregroundColor(.green)
+                            .frame(width: 28, height: 28)
+                            .background(Color.green.opacity(0.1))
+                            .cornerRadius(6)
+
+                        Text("Projections")
+                            .font(.custom("Palatino", size: 15))
+                            .foregroundColor(.themeText)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.themeMuted.opacity(0.5))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.themeSurface)
+                    .cornerRadius(10)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 24)
+
                 // Spacer() — flexible empty space that pushes everything above it upward.
                 Spacer()
             }
