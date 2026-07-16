@@ -1,0 +1,6 @@
+# Production override — used by CI deploy pipeline on VPS
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+services:
+  app:
+    build: !reset null
+    image: nicksobchak/onthemoney-app:latest

@@ -17,13 +17,6 @@ jobs:
           script: |
             cd /opt/onthemoney
             git pull origin main
-            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" > .env
-            echo "PLAID_CLIENT_ID=${{ secrets.PLAID_CLIENT_ID }}" >> .env
-            echo "PLAID_SECRET=${{ secrets.PLAID_SECRET }}" >> .env
-            echo "PLAID_ENV=production" >> .env
-            echo "FINNHUB_API_KEY=${{ secrets.FINNHUB_API_KEY }}" >> .env
-            echo "API_KEY=${{ secrets.API_KEY }}" >> .env
-            chmod 600 .env
-            docker compose down
-            docker compose build --no-cache
-            docker compose up -d
+            docker pull nicksobchak/onthemoney-app:latest
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
