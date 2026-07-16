@@ -7,24 +7,37 @@
 
 #
 ### Description
-On the money is a personal finance tracker with a Java/Spring Boot API, PostgreSQL persistence, and a C++ engine for heavy computations.
+On The Money is a personal finance tracker with a Java/Spring Boot API, PostgreSQL persistence, a C++ engine for heavy computations, and a SwiftUI iOS app. It tracks all your finances in one place — accounts, transactions, net worth history, credit score, stock market watchlist, and retirement projections.
 
 ### Features
-  - Coming soon
+- **Account Management** — checking, savings, credit card, and investment accounts with full CRUD
+- **Transactions** — deposits, withdrawals, and transfers between accounts with date/description tracking
+- **Net Worth Tracking** — daily snapshots with interactive line chart and time range filters (1W, 1M, 3M, YTD, 1Y, ALL)
+- **Credit Score** — manual entry with visual range bars, change arrows, and range indicators
+- **Monte Carlo Projections** — C++ engine runs 10,000 simulations to project portfolio growth over time with pessimistic/median/optimistic scenarios
+- **Stock Market Integration** — live quotes and market indices (S&P 500, NASDAQ, Dow Jones, Russell 2000, VIX) via [Finnhub](https://finnhub.io/)
+- **Stock Watchlist** — search and track stocks with real-time prices, top 5 stock performance comparison
+- **Plaid Bank Sync** — connect real bank and brokerage accounts via [Plaid](https://plaid.com/) for automatic transaction imports
+- **CSV Export** — export all accounts and transactions to CSV via iOS share sheet
+- **Dark Mode** — full adaptive theming across light and dark modes
+- **iOS App** — native SwiftUI frontend with custom tab bar and Palatino typography
 
 # Building this project
 
 ### This project uses
   - C++20
   - Java 17
-  - Swift
+  - Swift / SwiftUI
   - [Spring Boot 3.3](https://spring.io/projects/spring-boot)
-  - SwiftUI
   - [PostgreSQL](https://www.postgresql.org/docs/)
   - [Docker](https://docs.docker.com/manuals/)
   - CMake
   - [Gradle](https://docs.gradle.org/current/userguide/userguide.html)
   - [nlohmann/json](https://json.nlohmann.me/)
+  - [Plaid API](https://plaid.com/docs/api/) — bank account linking and transaction sync
+  - [Finnhub API](https://finnhub.io/docs/api) — real-time stock quotes and market data
+  - [Spring Security](https://spring.io/projects/spring-security) — API key authentication
+  - [Nginx](https://nginx.org/) — reverse proxy for production deployment
   - clang (tidy/format)
 
 ### Project Structure
@@ -39,13 +52,37 @@ On the money is a personal finance tracker with a Java/Spring Boot API, PostgreS
 │   │   └── unit/
 │   ├── scripts/
 │   └── vcpkg_installed/
+├── ios/
+│   └── OnTheMoney/
+│       └── OnTheMoney/
+│           ├── OnTheMoneyApp.swift
+│           ├── ContentView.swift
+│           ├── PortfolioView.swift
+│           ├── AccountsView.swift
+│           ├── StocksView.swift
+│           ├── ProfileView.swift
+│           ├── ProjectionsView.swift
+│           ├── APIClient.swift
+│           └── Models.swift
 ├── src/
 │   ├── main/
 │   │   ├── java/
+│   │   │   └── com/onthemoney/
+│   │   │       ├── config/
+│   │   │       ├── controller/
+│   │   │       ├── entity/
+│   │   │       ├── repository/
+│   │   │       └── service/
 │   │   └── resources/
 │   └── test/
+├── .github/workflows/
+│   ├── ci.yml
+│   └── deploy.yml
 ├── build.gradle
-└── docker-compose.yml
+├── docker-compose.yml
+├── Dockerfile
+├── nginx.conf
+└── .env.example
 ```
 
 ### Code Formatting (Pre-commit Hook)
@@ -68,20 +105,39 @@ Setup Instructions:
     pre-commit install
     ```
 
+## Environment Setup
+
+Copy the example environment file and fill in your credentials:
+
+```bash
+cp .env.example .env
+```
+
+Required variables:
+| Variable | Description |
+|----------|-------------|
+| `DB_PASSWORD` | PostgreSQL password |
+| `PLAID_CLIENT_ID` | From [Plaid Dashboard](https://dashboard.plaid.com/team/keys) |
+| `PLAID_SECRET` | From Plaid Dashboard |
+| `PLAID_ENV` | `sandbox` (dev) or `production` (live banks) |
+| `PLAID_REDIRECT_URI` | OAuth redirect URI for Plaid Link (optional) |
+| `FINNHUB_API_KEY` | From [Finnhub](https://finnhub.io/register) |
+| `API_KEY` | Generate with `openssl rand -hex 32` |
+
 ## Database
 
 Start PostgreSQL via Docker:
 
 ```bash
-docker compose up -d
+docker compose up -d db
 ```
 
-The `accounts` and `transactions` tables are auto-created by Hibernate. To inspect:
+Tables are auto-created by Hibernate. To inspect:
 
 ```bash
 docker exec -it onthemoney-db psql -U app -d onthemoney
-\dt  # show tables
-\q   # quit
+dt  # show tables
+q   # quit
 ```
 
 ## Build & Run
@@ -108,18 +164,76 @@ cmake --build build -j
 ./gradlew test
 ```
 
+### iOS App
+
+Open `ios/OnTheMoney/OnTheMoney.xcodeproj` in Xcode and run on a simulator or device.
+
+- **Debug builds** connect to `http://localhost:8080/api/`
+- **Release builds** connect to the VPS at the configured address
+
+## Docker Deployment
+
+### Local Development
+
+```bash
+docker compose up -d
+```
+
+This starts PostgreSQL, the Spring Boot app, and Nginx. The API is available at `http://localhost:80`.
+
+### VPS Deployment
+
+The app auto-deploys on push to `main` via GitHub Actions (`.github/workflows/deploy.yml`).
+
+**One-time VPS setup:**
+
+```bash
+# SSH into your VPS
+ssh user@your-vps-ip
+
+# Clone the repo
+mkdir -p /opt/onthemoney && cd /opt/onthemoney
+git clone https://github.com/NicholasSobchak/On-The-Money-finance-tracker.git .
+
+# Create .env with your secrets
+cp .env.example .env
+nano .env  # fill in real values
+
+# Start everything
+docker compose up -d
+```
+
+**Required GitHub Secrets** for auto-deploy:
+| Secret | Value |
+|--------|-------|
+| `VPS_HOST` | Your VPS IP address |
+| `VPS_USER` | SSH username |
+| `VPS_SSH_KEY` | Private SSH key |
+| `DB_PASSWORD` | Database password |
+| `PLAID_CLIENT_ID` | Plaid client ID |
+| `PLAID_SECRET` | Plaid secret |
+| `FINNHUB_API_KEY` | Finnhub API key |
+| `API_KEY` | API key for iOS auth |
+
 ## API Endpoints
+
+All endpoints require `X-API-Key` header (except `/api/status` and `/`).
 
 ```http
 GET  /api/
 GET  /api/status
+
+# Net Worth
 GET  /api/net-worth
+GET  /api/net-worth/history
+POST /api/net-worth/snapshot
 GET  /api/total-assets
 GET  /api/total-liabilities
-GET  /api/in-the-red
-GET  /api/in-the-green
-POST /api/project?initialBalance=10000&monthlyContribution=500&returnRate=7&years=30&simulations=1000
 
+# Projections (Monte Carlo)
+POST /api/project?initialBalance=10000&monthlyContribution=500&returnRate=7&years=30&simulations=10000
+
+# Accounts
 POST /api/accounts?name=Checking&balance=5000&accType=CHECKING
 GET  /api/accounts
 GET  /api/accounts?name=Checking
@@ -128,6 +242,7 @@ PUT  /api/accounts/1?name=Primary&balance=6000
 DEL  /api/accounts/1
 DEL  /api/accounts
 
+# Transactions
 POST /api/accounts/1/deposit?amount=500&description=paycheck&date=2026-06-19
 POST /api/accounts/1/withdraw?amount=100&description=groceries&date=2026-06-20
 GET  /api/transactions
@@ -136,7 +251,28 @@ GET  /api/transactions?accountId=1
 PUT  /api/transactions/1?amount=250
 DEL  /api/transactions/1
 
+# Transfers
 POST /api/transfers?fromAccountId=2&toAccountId=1&amount=2000&date=2026-06-19
+
+# Credit Score
+GET  /api/credit-score
+POST /api/credit-score?score=742
+
+# Plaid Integration
+POST /api/plaid/link-token
+POST /api/plaid/exchange-token
+POST /api/plaid/sync
+GET  /api/plaid/accounts
+DEL  /api/plaid/items
+
+# Stock Market (Finnhub)
+GET  /api/stocks/quote?symbol=AAPL
+GET  /api/stocks/search?query=apple
+GET  /api/stocks/overview
+GET  /api/stocks/candles?symbol=AAPL
+GET  /api/stocks/watchlist
+POST /api/stocks/watchlist?symbol=AAPL
+DEL  /api/stocks/watchlist/AAPL
 ```
 
 ## JSON Protocol
