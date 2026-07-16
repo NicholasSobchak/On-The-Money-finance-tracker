@@ -6,7 +6,7 @@ class APIClient {
     private let apiKey = ""
     #else
     let base = URL(string: "https://onthemoney.site/api/")!
-    private let apiKey = "otm_prod_Kx8mN2pQr5tW7yB3vC6fH9jL1dG4sA0e"
+    private let apiKey = "270f5e262845b42de509dc07fb23df3a0a71ca156766ab89b487b7e35b856e46"
     #endif
 
     private func makeURL(path: String) throws -> URL {
