@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AccountDetailView: View {
+    @AppStorage("currency") private var currency = "USD"
     let account: Account
     @Environment(\.dismiss) var dismiss
     @State private var transactions: [Transaction] = []
@@ -104,7 +105,7 @@ struct AccountDetailView: View {
                             .font(.custom("Palatino", size: 13))
                             .foregroundColor(.themeMuted.opacity(0.6))
 
-                        Text(account.balance, format: .currency(code: "USD"))
+                        Text(account.balance, format: .currency(code: currency))
                             .font(.custom("Palatino", size: 52))
                             .fontWeight(.medium)
                             .foregroundColor(account.balance >= 0 ? .themeText : .red)
@@ -219,6 +220,7 @@ struct TransactionRow: View {
     let transaction: Transaction
     let accountId: Int
     var accountBalance: Double? = nil
+    @AppStorage("currency") private var currency = "USD"
 
     private var isCredit: Bool {
         transaction.type == "DEPOSIT" || transaction.toAccountId == accountId
@@ -268,11 +270,11 @@ struct TransactionRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(amount, format: .currency(code: "USD"))
+                Text(amount, format: .currency(code: currency))
                     .font(.custom("Palatino", size: 15))
                     .foregroundColor(isCredit ? .green : .red)
                 if let balance = accountBalance {
-                    Text(balance, format: .currency(code: "USD"))
+                    Text(balance, format: .currency(code: currency))
                         .font(.custom("Palatino", size: 11))
                         .foregroundColor(.themeMuted)
                 }

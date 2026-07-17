@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AccountEditView: View {
+    @AppStorage("currency") private var currency = "USD"
     let account: Account
     @Environment(\.dismiss) var dismiss
     @State private var name: String = ""
@@ -70,7 +71,7 @@ struct AccountEditView: View {
                             .font(.custom("Palatino", size: 15))
                             .foregroundColor(.themeMuted)
                         Spacer()
-                        Text(account.balance, format: .currency(code: "USD"))
+                        Text(account.balance, format: .currency(code: currency))
                             .font(.custom("Palatino", size: 15))
                             .foregroundColor(.themeText)
                     }

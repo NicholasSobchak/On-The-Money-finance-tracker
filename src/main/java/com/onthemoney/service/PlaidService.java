@@ -279,6 +279,11 @@ public class PlaidService {
     plaidItemRepo.deleteAll();
   }
 
+  // 10. Count linked institutions
+  public long getLinkedItemCount() {
+    return plaidItemRepo.count();
+  }
+
   private AccountType mapPlaidType(String type, String subtype) {
     if ("depository".equals(type)) {
       if ("checking".equals(subtype)) return AccountType.CHECKING;

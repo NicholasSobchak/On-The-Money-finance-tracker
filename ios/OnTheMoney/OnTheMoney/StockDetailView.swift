@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct StockDetailView: View {
+    @AppStorage("currency") private var currency = "USD"
     @Environment(\.dismiss) private var dismiss
     let stock: StockQuote
 
@@ -37,13 +38,13 @@ struct StockDetailView: View {
                 .padding(.horizontal, 16)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(quote.currentPrice, format: .currency(code: "USD"))
+                    Text(quote.currentPrice, format: .currency(code: currency))
                         .font(.custom("Palatino", size: 34))
                         .foregroundColor(.themeText)
                     HStack(spacing: 5) {
                         Image(systemName: quote.change >= 0 ? "arrow.up" : "arrow.down")
                             .font(.system(size: 11, weight: .bold))
-                        Text("\(quote.change, format: .currency(code: "USD")) (\(quote.percentChange, specifier: "%+.2f")%)")
+                        Text("\(quote.change, format: .currency(code: currency)) (\(quote.percentChange, specifier: "%+.2f")%)")
                             .font(.custom("Palatino", size: 15))
                     }
                     .foregroundColor(quote.change >= 0 ? .green : .red)
@@ -117,9 +118,9 @@ struct StockDetailView: View {
             .frame(height: 20)
 
             HStack {
-                Text(quote.low, format: .currency(code: "USD"))
+                Text(quote.low, format: .currency(code: currency))
                 Spacer()
-                Text(quote.high, format: .currency(code: "USD"))
+                Text(quote.high, format: .currency(code: currency))
             }
             .font(.custom("Palatino", size: 12))
             .foregroundColor(.themeMuted)
@@ -141,7 +142,7 @@ struct StockDetailView: View {
             Text(title)
                 .font(.custom("Palatino", size: 13))
                 .foregroundColor(.themeMuted)
-            Text(value, format: .currency(code: "USD"))
+            Text(value, format: .currency(code: currency))
                 .font(.custom("Palatino", size: 16))
                 .foregroundColor(.themeText)
         }

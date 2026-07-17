@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AccountsView: View {
+    @AppStorage("currency") private var currency = "USD"
     @State private var accounts: [Account] = []
     @State private var totalBalance = 0.0
     @State private var isLinking = false
@@ -8,6 +9,8 @@ struct AccountsView: View {
     @State private var linkToken: String?
     @State private var searchText = ""
     @State private var showSearch = false
+    @State private var showError = false
+    @State private var errorMessage = ""
     @FocusState private var isSearchFocused: Bool
 
     private var filteredAccounts: [Account] {
@@ -167,18 +170,25 @@ struct AccountsView: View {
                     .ignoresSafeArea()
                 }
             }
+            .alert("Error", isPresented: $showError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
 
     func startLinking() async {
         isLinking = true
         let api = APIClient()
-        guard let token = try? await api.createLinkToken() else {
-            isLinking = false
-            return
+        do {
+            let token = try await api.createLinkToken()
+            linkToken = token
+            showPlaidLink = true
+        } catch {
+            errorMessage = "Could not connect to bank. Please try again."
+            showError = true
         }
-        linkToken = token
-        showPlaidLink = true
         isLinking = false
     }
 
@@ -198,6 +208,7 @@ struct AccountsView: View {
 struct AccountRow: View {
     let account: Account
     let totalBalance: Double
+    @AppStorage("currency") private var currency = "USD"
     @State private var showDeleteConfirm = false
     @State private var isDeleted = false
 
@@ -249,7 +260,7 @@ struct AccountRow: View {
                     Spacer()
 
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(account.balance, format: .currency(code: "USD"))
+                        Text(account.balance, format: .currency(code: currency))
                             .font(.custom("Palatino", size: 16))
                             .foregroundColor(account.balance >= 0 ? .themeText : .red)
                         Text("\(pct * 100, specifier: "%.1f")%")

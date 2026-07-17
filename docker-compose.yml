@@ -28,6 +28,7 @@ services:
       FINNHUB_API_KEY: ${FINNHUB_API_KEY}
       API_KEY: ${API_KEY}
       PLAID_REDIRECT_URI: ${PLAID_REDIRECT_URI:-}
+      TZ: America/New_York
     ports:
       - "8080:8080"
     depends_on:

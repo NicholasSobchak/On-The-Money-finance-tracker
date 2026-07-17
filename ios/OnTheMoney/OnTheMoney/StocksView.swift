@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct StocksView: View {
+    @AppStorage("currency") private var currency = "USD"
     @State private var marketIndices: [StockQuote] = []
     @State private var topStocks: [StockQuote] = []
     @State private var searchText = ""
@@ -11,10 +12,171 @@ struct StocksView: View {
 
     private let topSymbols = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA"]
 
+    private var indicesUp: Int { marketIndices.filter { $0.change >= 0 }.count }
+    private var marketSentiment: String {
+        let ratio = Double(indicesUp) / Double(max(marketIndices.count, 1))
+        if ratio >= 0.8 { return "Bullish" }
+        if ratio >= 0.6 { return "Lean Bull" }
+        if ratio >= 0.4 { return "Mixed" }
+        if ratio >= 0.2 { return "Lean Bear" }
+        return "Bearish"
+    }
+    private var sentimentColor: Color {
+        let ratio = Double(indicesUp) / Double(max(marketIndices.count, 1))
+        if ratio >= 0.6 { return .green }
+        if ratio >= 0.4 { return .yellow }
+        return .red
+    }
+    private var avgChange: Double {
+        guard !marketIndices.isEmpty else { return 0 }
+        return marketIndices.map(\.percentChange).reduce(0, +) / Double(marketIndices.count)
+    }
+    private var biggestGainer: StockQuote? { marketIndices.max(by: { $0.percentChange < $1.percentChange }) }
+    private var biggestLoser: StockQuote? { marketIndices.min(by: { $0.percentChange < $1.percentChange }) }
+    private var vixQuote: StockQuote? { marketIndices.first(where: { $0.symbol == "VIX" }) }
+    private var vixLevel: String {
+        guard let vix = vixQuote else { return "—" }
+        return String(format: "%.1f", vix.currentPrice)
+    }
+    private var vixLabel: String {
+        guard let vix = vixQuote else { return "" }
+        if vix.currentPrice < 15 { return "Low Fear" }
+        if vix.currentPrice < 20 { return "Normal" }
+        if vix.currentPrice < 25 { return "Elevated" }
+        if vix.currentPrice < 30 { return "High Fear" }
+        return "Extreme"
+    }
+    private var vixColor: Color {
+        guard let vix = vixQuote else { return .themeMuted }
+        if vix.currentPrice < 15 { return .green }
+        if vix.currentPrice < 20 { return .themeMuted }
+        if vix.currentPrice < 25 { return .yellow }
+        return .red
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
+
+                    // ── SEARCH BAR ──
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 13))
+                                .foregroundColor(.themeMuted)
+
+                            TextField("Search stocks...", text: $searchText)
+                                .font(.custom("Palatino", size: 15))
+                                .foregroundColor(.themeText)
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
+                                .onChange(of: searchText) { newValue in
+                                    Task { await search(query: newValue) }
+                                }
+                        }
+                        .padding(12)
+                        .background(Color.themeSurface)
+                        .cornerRadius(10)
+                        .padding(.horizontal, 16)
+
+                        if !searchResults.isEmpty {
+                            VStack(spacing: 0) {
+                                ForEach(searchResults.prefix(6)) { result in
+                                    HStack {
+                                        NavigationLink {
+                                            StockDetailView(stock: StockQuote(
+                                                symbol: result.symbol,
+                                                name: result.description,
+                                                currentPrice: 0,
+                                                change: 0,
+                                                percentChange: 0,
+                                                high: 0,
+                                                low: 0,
+                                                open: 0,
+                                                previousClose: 0
+                                            ))
+                                        } label: {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(result.symbol)
+                                                    .font(.custom("Palatino", size: 15))
+                                                    .foregroundColor(.themeText)
+                                                Text(result.description)
+                                                    .font(.custom("Palatino", size: 12))
+                                                    .foregroundColor(.themeMuted)
+                                                    .lineLimit(1)
+                                            }
+                                        }
+                                        .buttonStyle(.plain)
+
+                                        Spacer()
+
+                                        Button {
+                                            Task { await addToWatchlist(symbol: result.symbol) }
+                                        } label: {
+                                            Image(systemName: "plus.circle")
+                                                .font(.system(size: 14))
+                                                .foregroundColor(.themeMuted)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+
+                                    if result.id != searchResults.prefix(6).last?.id {
+                                        Divider().background(Color.themeMuted.opacity(0.1)).padding(.leading, 16)
+                                    }
+                                }
+                            }
+                            .background(Color.themeSurface)
+                            .cornerRadius(10)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
+                        }
+                    }
+                    .padding(.top, 16)
+
+                    // ── MARKET ANALYTICS ──
+                    if !marketIndices.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                analyticsBox(
+                                    title: "Sentiment",
+                                    value: marketSentiment,
+                                    color: sentimentColor
+                                )
+                                analyticsBox(
+                                    title: "Avg Change",
+                                    value: String(format: "%+.2f%%", avgChange),
+                                    color: avgChange >= 0 ? .green : .red
+                                )
+                                if let gainer = biggestGainer {
+                                    analyticsBox(
+                                        title: "Top Mover",
+                                        value: gainer.symbol,
+                                        sub: String(format: "%+.2f%%", gainer.percentChange),
+                                        color: .green
+                                    )
+                                }
+                                if let loser = biggestLoser {
+                                    analyticsBox(
+                                        title: "Worst",
+                                        value: loser.symbol,
+                                        sub: String(format: "%+.2f%%", loser.percentChange),
+                                        color: .red
+                                    )
+                                }
+                                analyticsBox(
+                                    title: "VIX",
+                                    value: vixLevel,
+                                    sub: vixLabel,
+                                    color: vixColor
+                                )
+                            }
+                            .padding(.horizontal, 16)
+                        }
+                        .padding(.top, 16)
+                    }
 
                     // ── MARKET OVERVIEW ──
                     VStack(alignment: .leading, spacing: 14) {
@@ -22,20 +184,6 @@ struct StocksView: View {
                             Text("Market Overview")
                                 .font(.custom("Palatino", size: 20))
                                 .foregroundColor(.themeText)
-
-                            Spacer()
-
-                            NavigationLink {
-                                ProjectionsView()
-                            } label: {
-                                HStack(spacing: 5) {
-                                    Image(systemName: "chart.line.uptrend.xyaxis")
-                                        .font(.system(size: 12))
-                                    Text("Projections")
-                                        .font(.custom("Palatino", size: 13))
-                                }
-                                .foregroundColor(.themeAccent)
-                            }
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 24)
@@ -52,7 +200,7 @@ struct StocksView: View {
                                                     .font(.custom("Palatino", size: 12))
                                                     .foregroundColor(.themeMuted)
 
-                                                Text(index.currentPrice, format: .currency(code: "USD"))
+                                                Text(index.currentPrice, format: .currency(code: currency))
                                                     .font(.custom("Palatino", size: 15))
                                                     .foregroundColor(.themeText)
 
@@ -142,7 +290,7 @@ struct StocksView: View {
                                         .frame(height: 8)
 
                                         VStack(alignment: .trailing, spacing: 2) {
-                                            Text(stock.currentPrice, format: .currency(code: "USD"))
+                                            Text(stock.currentPrice, format: .currency(code: currency))
                                                 .font(.custom("Palatino", size: 14))
                                                 .foregroundColor(.themeText)
                                             Text(String(format: "%+.2f%%", stock.percentChange))
@@ -178,82 +326,6 @@ struct StocksView: View {
                         }
                         .padding(.leading, 16)
                         .padding(.top, 24)
-
-                        // ── SEARCH BAR ──
-                        VStack(alignment: .leading, spacing: 0) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "magnifyingglass")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.themeMuted)
-
-                                TextField("Search stocks...", text: $searchText)
-                                    .font(.custom("Palatino", size: 15))
-                                    .foregroundColor(.themeText)
-                                    .autocapitalization(.none)
-                                    .disableAutocorrection(true)
-                                    .onChange(of: searchText) { _, newValue in
-                                        Task { await search(query: newValue) }
-                                    }
-                            }
-                            .padding(12)
-                            .background(Color.themeSurface)
-                            .cornerRadius(10)
-                            .padding(.horizontal, 16)
-
-                            if !searchResults.isEmpty {
-                                VStack(spacing: 0) {
-                                    ForEach(searchResults.prefix(6)) { result in
-                                        HStack {
-                                            NavigationLink {
-                                                StockDetailView(stock: StockQuote(
-                                                    symbol: result.symbol,
-                                                    name: result.description,
-                                                    currentPrice: 0,
-                                                    change: 0,
-                                                    percentChange: 0,
-                                                    high: 0,
-                                                    low: 0,
-                                                    open: 0,
-                                                    previousClose: 0
-                                                ))
-                                            } label: {
-                                                VStack(alignment: .leading, spacing: 2) {
-                                                    Text(result.symbol)
-                                                        .font(.custom("Palatino", size: 15))
-                                                        .foregroundColor(.themeText)
-                                                    Text(result.description)
-                                                        .font(.custom("Palatino", size: 12))
-                                                        .foregroundColor(.themeMuted)
-                                                        .lineLimit(1)
-                                                }
-                                            }
-                                            .buttonStyle(.plain)
-
-                                            Spacer()
-
-                                            Button {
-                                                Task { await addToWatchlist(symbol: result.symbol) }
-                                            } label: {
-                                                Image(systemName: "plus.circle")
-                                                    .font(.system(size: 14))
-                                                    .foregroundColor(.themeMuted)
-                                            }
-                                            .buttonStyle(.plain)
-                                        }
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 10)
-
-                                        if result.id != searchResults.prefix(6).last?.id {
-                                            Divider().background(Color.themeMuted.opacity(0.1)).padding(.leading, 16)
-                                        }
-                                    }
-                                }
-                                .background(Color.themeSurface)
-                                .cornerRadius(10)
-                                .padding(.horizontal, 16)
-                                .padding(.top, 8)
-                            }
-                        }
 
                         if watchlist.isEmpty && !isLoading {
                             HStack(spacing: 12) {
@@ -295,7 +367,7 @@ struct StocksView: View {
                                             Spacer()
 
                                             VStack(alignment: .trailing, spacing: 2) {
-                                                Text(stock.currentPrice, format: .currency(code: "USD"))
+                                                Text(stock.currentPrice, format: .currency(code: currency))
                                                     .font(.custom("Palatino", size: 15))
                                                     .foregroundColor(.themeText)
 
@@ -340,6 +412,28 @@ struct StocksView: View {
         .task {
             await loadData()
         }
+    }
+
+    private func analyticsBox(title: String, value: String, sub: String? = nil, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.custom("Palatino", size: 10))
+                .foregroundColor(.themeMuted)
+            Text(value)
+                .font(.custom("Palatino", size: 14))
+                .fontWeight(.medium)
+                .foregroundColor(color)
+            if let sub = sub {
+                Text(sub)
+                    .font(.custom("Palatino", size: 10))
+                    .foregroundColor(color.opacity(0.7))
+            }
+        }
+        .frame(minWidth: 90)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color.themeSurface)
+        .cornerRadius(10)
     }
 
     func loadData() async {

@@ -5,6 +5,8 @@ import Charts // provides Chart, LineMark, AxisMarks, default coordinate system 
 // I'm trying to code swift at a high level just learning it and there is a lot of functions from libraries i've never used before
 
 struct PortfolioView: View {
+    @Environment(\.colorScheme) var colorScheme
+    @AppStorage("currency") private var currency = "USD"
     @State private var netWorth = 0.0
     @State private var originalNetWorth = 0.0
     @State private var history: [NetWorthHistory] = []
@@ -23,6 +25,8 @@ struct PortfolioView: View {
     @State private var showPlaidLink = false
     @State private var isLinking = false
     @State private var linkToken: String?
+    @State private var showError = false
+    @State private var errorMessage = ""
 
     let ranges = ["1W", "1M", "3M", "YTD", "1Y", "ALL"]
 
@@ -165,6 +169,14 @@ struct PortfolioView: View {
     var isPositive: Bool { change >= 0 }
     var inTheRed: Bool { netWorth < 0 }
 
+    var dimmedLineColor: Color {
+        if colorScheme == .dark {
+            return isPositive ? Color(red: 0.05, green: 0.25, blue: 0.05) : Color(red: 0.25, green: 0.05, blue: 0.05)
+        } else {
+            return isPositive ? Color.green.opacity(0.3) : Color.red.opacity(0.3)
+        }
+    }
+
     var latestHistoryDate: String {
         guard let last = history.last, let d = dateFormatter.date(from: last.date) else { return "" }
         return dateOnlyFormatter.string(from: d)
@@ -296,7 +308,7 @@ struct PortfolioView: View {
                         }
                     }
 
-                    Text(netWorth, format: .currency(code: "USD"))
+                    Text(netWorth, format: .currency(code: currency))
                         .font(.custom("Palatino", size: 36))
                         .foregroundColor(.themeText)
 
@@ -314,23 +326,21 @@ struct PortfolioView: View {
                 .padding(.leading, 16) // .padding() — adds space on specified sides
                 .padding(.top, 24)
 
-                // ── CHART: Two lines with different colors ──
+                // ── CHART: Two lines with different colors + touch overlay ──
                 Chart {
                     ForEach(leftSegment, id: \.id) { point in
                         LineMark(
                             x: .value("Date", point.date),
-                            y: .value("Net Worth", point.netWorth),
-                            series: .value("Segment", "active")
+                            y: .value("Net Worth", point.netWorth)
                         )
-                        .foregroundStyle(isPositive ? Color.green : Color.red)
+                        .foregroundStyle(isPositive ? .green : .red)
                     }
                     ForEach(rightSegment, id: \.id) { point in
                         LineMark(
                             x: .value("Date", point.date),
-                            y: .value("Net Worth", point.netWorth),
-                            series: .value("Segment", "dimmed")
+                            y: .value("Net Worth", point.netWorth)
                         )
-                        .foregroundStyle(isPositive ? Color(light: Color.green.opacity(0.3), dark: Color(red: 0.05, green: 0.25, blue: 0.05)) : Color(light: Color.red.opacity(0.3), dark: Color(red: 0.25, green: 0.05, blue: 0.05)))
+                        .foregroundStyle(isPositive ? Color.green.opacity(0.3) : Color.red.opacity(0.3))
                     }
                     if cachedFilteredHistory.count == 1, let point = cachedFilteredHistory.first {
                         PointMark(
@@ -338,101 +348,66 @@ struct PortfolioView: View {
                             y: .value("Net Worth", point.netWorth)
                         )
                         .foregroundStyle(point.netWorth >= 0 ? Color.green : Color.red)
-                        .symbolSize(80)
+                        .symbolSize(36)
                     }
                 }
-                .chartXAxis { AxisMarks { _ in } } // hide the X axis
-                .chartYAxis { // configure Y axis labels
-                    // AxisMarks(position: .trailing) — place labels on the right side.
+                .chartXAxis { AxisMarks { _ in } }
+                .chartYAxis {
                     AxisMarks(position: .trailing) { _ in
-                        AxisValueLabel() // the number label itself
-                        .foregroundStyle(Color.themeMuted)
+                        AxisValueLabel()
+                            .foregroundStyle(Color.themeMuted)
                     }
                 }
-                .chartYScale(domain: cachedYDomain) // set explicit Y min/max range
-                .frame(height: 260)
-                .padding(.horizontal)
-                .padding(.top, 8)
-
-                // ── OVERLAY: Touch gesture + selection indicators ──
-                // .chartOverlay { proxy in } — from Swift Charts.
-                //   Closes over a ChartProxy which converts between data values and pixel positions.
+                .chartYScale(domain: cachedYDomain)
                 .chartOverlay { proxy in
-                    // GeometryReader — SwiftUI container that reads its own size and position.
-                    //   geometry[proxy.plotAreaFrame] — returns the plot area's CGRect
-                    //   within the overlay (where the actual line marks are drawn).
                     GeometryReader { geometry in
-                        let plot = proxy.plotFrame.map { geometry[$0] } ?? CGRect(x: 0, y: 0, width: 300, height: 260)
-                        let origin = plot.origin // top-left corner of the plot area
+                        let plot = geometry[proxy.plotAreaFrame]
+                        let origin = plot.origin
                         ZStack(alignment: .topLeading) {
                             if let selected = selectedDate,
                                let entry = leftSegment.last {
-
-                                // proxy.position(forX:) / proxy.position(forY:) —
-                                //   Convert data values (date string, net worth number)
-                                //   into pixel positions relative to the plot area origin.
                                 let x = proxy.position(forX: selected) ?? 0
                                 let y = proxy.position(forY: entry.netWorth) ?? 0
-                                // pointX, pointY — absolute position in the overlay's coords
                                 let pointX = origin.x + x
                                 let pointY = origin.y + y
-                                // labelY — clamped to stay at least 4px below the plot top
                                 let labelY = max(pointY - 64, origin.y + 4)
 
-                                // Path { } — SwiftUI shape for custom drawing.
-                                //   path.move(to:) — move pen without drawing.
-                                //   path.addLine(to:) — draw line from current point.
                                 Path { path in
                                     path.move(to: CGPoint(x: pointX, y: origin.y + plot.height))
                                     path.addLine(to: CGPoint(x: pointX, y: labelY))
                                 }
                                 .stroke(Color.themeMuted.opacity(0.4), lineWidth: 1)
-                                // .stroke() — outline a shape with color, opacity, thickness.
 
-                                // Circle() — SwiftUI shape (elipse that fills its frame).
                                 Circle()
-                                    .fill(Color.themeAccent) // .fill() — fill the shape
-                                    .frame(width: 8, height: 8) // constrain size
-                                    .position(x: pointX, y: pointY) // .position() — absolute positioning
-                                //   (places the view's center at (x, y) in the parent).
+                                    .fill(Color.themeAccent)
+                                    .frame(width: 8, height: 8)
+                                    .position(x: pointX, y: pointY)
 
                                 Text(formattedLabel(for: selected))
                                     .font(.custom("Palatino", size: 11))
                                     .foregroundColor(.themeText)
-                                    .padding(.horizontal, 6) // internal horizontal padding
-                                    .padding(.vertical, 3)   // internal vertical padding
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
                                     .position(x: pointX, y: labelY)
                             }
 
-                            // .contentShape(Rectangle()) — sets the hit-test shape for gesture
-                            //   detection. Without this, a clear/fill(.clear) view is untappable.
-                            // .gesture() — attaches an interactive gesture to the view.
-                            // DragGesture(minimumDistance: 0) — fires on both tap and drag.
-                            //   .onChanged — fires continuously as the finger moves.
-                            //   .onEnded — fires when the finger lifts.
                             Rectangle()
                                 .fill(.clear)
                                 .contentShape(Rectangle())
                                 .simultaneousGesture(
                                     DragGesture(minimumDistance: 0)
                                         .onChanged { value in
-                                            // value.location — CGPoint of the touch in the overlay.
-                                            // Subtract origin.x to get position relative to plot.
                                             let x = value.location.x - origin.x
                                             let w = plot.width
                                             if x < 0 || x > w { return }
-                                            // proxy.value(atX:) — inverse of position(forX:).
-                                            //   Converts a pixel x-offset back into the nearest
-                                            //   x-axis data value (the date string).
                                             guard let date: String = proxy.value(atX: x) else { return }
+                                            if date != selectedDate {
+                                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                            }
                                             selectedDate = date
                                             if let entry = cachedFilteredHistory.first(where: { $0.date == date }) {
                                                 netWorth = entry.netWorth
                                             }
-
-                                            // UIImpactFeedbackGenerator — UIKit haptic feedback.
-                                            //   .light style = a subtle tap.
-                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                         }
                                         .onEnded { _ in
                                             selectedDate = nil
@@ -442,6 +417,9 @@ struct PortfolioView: View {
                         }
                     }
                 }
+                .frame(height: 260)
+                .padding(.horizontal)
+                .padding(.top, 8)
 
                 // ── TIME RANGE BUTTONS ──
                 // ForEach(ranges, id: \.self) — iterate over the string array.
@@ -471,14 +449,14 @@ struct PortfolioView: View {
 
                 // ── ACCOUNT MIX ──
                 let totalBalance = accounts.map(\.balance).reduce(0, +)
-                if totalBalance != 0 {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Account Mix")
-                            .font(.custom("Palatino", size: 20))
-                            .foregroundColor(.themeText)
-                            .padding(.leading, 16)
-                            .padding(.top, 20)
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Account Mix")
+                        .font(.custom("Palatino", size: 20))
+                        .foregroundColor(.themeText)
+                        .padding(.leading, 16)
+                        .padding(.top, 20)
 
+                    if totalBalance != 0 {
                         ForEach(accounts.sorted(by: { $0.balance > $1.balance })) { account in
                             let pct = totalBalance != 0 ? account.balance / totalBalance : 0
                             HStack(spacing: 12) {
@@ -497,7 +475,7 @@ struct PortfolioView: View {
                                 }
                                 .frame(height: 8)
 
-                                Text(account.balance, format: .currency(code: "USD"))
+                                Text(account.balance, format: .currency(code: currency))
                                     .font(.custom("Palatino", size: 16))
                                     .foregroundColor(.themeText)
                                     .frame(width: 100, alignment: .trailing)
@@ -509,6 +487,47 @@ struct PortfolioView: View {
                             }
                             .padding(.horizontal, 16)
                         }
+                    } else {
+                        Button {
+                            Task {
+                                isLinking = true
+                                let api = APIClient()
+                                do {
+                                    let token = try await api.createLinkToken()
+                                    linkToken = token
+                                    showPlaidLink = true
+                                } catch {
+                                    errorMessage = "Could not connect to bank. Please try again."
+                                    showError = true
+                                }
+                                isLinking = false
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "plus.circle")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.themeMuted)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color.themeSurface2)
+                                    .cornerRadius(6)
+
+                                Text("Link Account")
+                                    .font(.custom("Palatino", size: 15))
+                                    .foregroundColor(.themeMuted)
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.themeMuted.opacity(0.5))
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(Color.themeSurface)
+                            .cornerRadius(10)
+                        }
+                        .disabled(isLinking)
+                        .padding(.horizontal, 16)
                     }
                 }
 
@@ -520,7 +539,7 @@ struct PortfolioView: View {
                             .foregroundColor(.themeText)
                         Spacer()
                         if totalDebt > 0 {
-                            Text(totalDebt, format: .currency(code: "USD"))
+                            Text(totalDebt, format: .currency(code: currency))
                                 .font(.custom("Palatino", size: 16))
                                 .foregroundColor(.red)
                         }
@@ -571,7 +590,7 @@ struct PortfolioView: View {
 
                                 Spacer()
 
-                                Text(acct.balance, format: .currency(code: "USD"))
+                                Text(acct.balance, format: .currency(code: currency))
                                     .font(.custom("Palatino", size: 15))
                                     .foregroundColor(.red)
                             }
@@ -592,7 +611,7 @@ struct PortfolioView: View {
                             .foregroundColor(.themeText)
                         Spacer()
                         if totalInvestments > 0 {
-                            Text(totalInvestments, format: .currency(code: "USD"))
+                            Text(totalInvestments, format: .currency(code: currency))
                                 .font(.custom("Palatino", size: 16))
                                 .foregroundColor(.green)
                         }
@@ -605,12 +624,14 @@ struct PortfolioView: View {
                             Task {
                                 isLinking = true
                                 let api = APIClient()
-                                guard let token = try? await api.createLinkToken() else {
-                                    isLinking = false
-                                    return
+                                do {
+                                    let token = try await api.createLinkToken()
+                                    linkToken = token
+                                    showPlaidLink = true
+                                } catch {
+                                    errorMessage = "Could not connect to bank. Please try again."
+                                    showError = true
                                 }
-                                linkToken = token
-                                showPlaidLink = true
                                 isLinking = false
                             }
                         } label: {
@@ -659,7 +680,7 @@ struct PortfolioView: View {
 
                                 Spacer()
 
-                                Text(acct.balance, format: .currency(code: "USD"))
+                                Text(acct.balance, format: .currency(code: currency))
                                     .font(.custom("Palatino", size: 15))
                                     .foregroundColor(.themeText)
                             }
@@ -671,6 +692,36 @@ struct PortfolioView: View {
                         }
                     }
                 }
+
+                // ── PROJECTIONS ──
+                NavigationLink {
+                    ProjectionsView()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.system(size: 14))
+                            .foregroundColor(.green)
+                            .frame(width: 28, height: 28)
+                            .background(Color.green.opacity(0.1))
+                            .cornerRadius(6)
+
+                        Text("Projections")
+                            .font(.custom("Palatino", size: 15))
+                            .foregroundColor(.themeText)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.themeMuted.opacity(0.5))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.themeSurface)
+                    .cornerRadius(10)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
 
                 // ── CREDIT SCORE ──
                 VStack(alignment: .leading, spacing: 14) {
@@ -782,60 +833,71 @@ struct PortfolioView: View {
                         showCreditScoreEntry = true
                     }
                 }
-                .sheet(isPresented: $showCreditScoreEntry) {
-                    VStack(spacing: 0) {
-                        HStack {
+                .overlay {
+                    if showCreditScoreEntry {
+                        Color.black.opacity(0.5)
+                            .ignoresSafeArea()
+                            .onTapGesture { showCreditScoreEntry = false }
+
+                        VStack(spacing: 0) {
                             Text("Update Credit Score")
                                 .font(.custom("Palatino", size: 17))
                                 .fontWeight(.semibold)
                                 .foregroundColor(.themeText)
-                            Spacer()
-                            Button("Cancel") {
-                                showCreditScoreEntry = false
-                            }
-                            .font(.custom("Palatino", size: 15))
-                            .foregroundColor(.themeMuted)
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
-                        .padding(.bottom, 16)
+                                .padding(.top, 20)
 
-                        TextField("e.g. 742", text: $creditScoreInput)
-                            .font(.custom("Palatino", size: 28))
-                            .fontWeight(.medium)
-                            .foregroundColor(.themeText)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.center)
-                            .padding(.vertical, 20)
-                            .frame(maxWidth: .infinity)
-                            .background(Color.themeBackground)
-                            .cornerRadius(10)
+                            TextField("e.g. 742", text: $creditScoreInput)
+                                .font(.custom("Palatino", size: 28))
+                                .fontWeight(.medium)
+                                .foregroundColor(.themeText)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.center)
+                                .padding(.vertical, 16)
+                                .frame(maxWidth: .infinity)
+                                .background(Color.themeBackground)
+                                .cornerRadius(10)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 16)
+
+                            HStack(spacing: 12) {
+                                Button("Cancel") {
+                                    showCreditScoreEntry = false
+                                }
+                                .font(.custom("Palatino", size: 15))
+                                .foregroundColor(.themeMuted)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.themeSurface)
+                                .cornerRadius(10)
+
+                                Button {
+                                    Task { await saveCreditScore() }
+                                } label: {
+                                    if isSavingCreditScore {
+                                        ProgressView()
+                                            .frame(height: 16)
+                                    } else {
+                                        Text("Save")
+                                            .font(.custom("Palatino", size: 15))
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                                .disabled(creditScoreInput.isEmpty || isSavingCreditScore)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(creditScoreInput.isEmpty ? Color.gray.opacity(0.3) : Color.themeAccent)
+                                .cornerRadius(10)
+                            }
                             .padding(.horizontal, 20)
-
-                        Button {
-                            Task { await saveCreditScore() }
-                        } label: {
-                            if isSavingCreditScore {
-                                ProgressView()
-                                    .frame(height: 20)
-                            } else {
-                                Text("Save")
-                                    .font(.custom("Palatino", size: 16))
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 14)
-                                    .background(Color.green)
-                                    .cornerRadius(10)
-                            }
+                            .padding(.top, 16)
+                            .padding(.bottom, 20)
                         }
-                        .disabled(creditScoreInput.isEmpty || isSavingCreditScore)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
-
-                        Spacer()
+                        .frame(width: 300)
+                        .background(Color.themeSurface)
+                        .cornerRadius(16)
+                        .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
                     }
-                    .background(Color.themeBackground)
-                    .presentationDetents([.medium])
                 }
                 .sheet(isPresented: $showPlaidLink) {
                     if let token = linkToken {
@@ -856,6 +918,11 @@ struct PortfolioView: View {
                         .ignoresSafeArea()
                     }
                 }
+                .alert("Error", isPresented: $showError) {
+                    Button("OK", role: .cancel) { }
+                } message: {
+                    Text(errorMessage)
+                }
 
                 // ── MONTHLY CASH FLOW ──
                 if !monthlyCashFlow.isEmpty {
@@ -871,7 +938,7 @@ struct PortfolioView: View {
                                 Text("Income")
                                     .font(.custom("Palatino", size: 12))
                                     .foregroundColor(.themeMuted)
-                                Text(totalIncome, format: .currency(code: "USD"))
+                                Text(totalIncome, format: .currency(code: currency))
                                     .font(.custom("Palatino", size: 16))
                                     .foregroundColor(.green)
                             }
@@ -879,7 +946,7 @@ struct PortfolioView: View {
                                 Text("Expenses")
                                     .font(.custom("Palatino", size: 12))
                                     .foregroundColor(.themeMuted)
-                                Text(totalExpenses, format: .currency(code: "USD"))
+                                Text(totalExpenses, format: .currency(code: currency))
                                     .font(.custom("Palatino", size: 16))
                                     .foregroundColor(.red)
                             }
@@ -925,36 +992,6 @@ struct PortfolioView: View {
                         .padding(.horizontal, 16)
                     }
                 }
-
-                // ── PROJECTIONS ──
-                NavigationLink {
-                    ProjectionsView()
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.system(size: 14))
-                            .foregroundColor(.green)
-                            .frame(width: 28, height: 28)
-                            .background(Color.green.opacity(0.1))
-                            .cornerRadius(6)
-
-                        Text("Projections")
-                            .font(.custom("Palatino", size: 15))
-                            .foregroundColor(.themeText)
-
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.themeMuted.opacity(0.5))
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(Color.themeSurface)
-                    .cornerRadius(10)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 24)
 
                 // Spacer() — flexible empty space that pushes everything above it upward.
                 Spacer()

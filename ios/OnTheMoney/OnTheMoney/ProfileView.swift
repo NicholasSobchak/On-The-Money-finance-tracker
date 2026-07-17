@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import Foundation
+import UserNotifications
 
 struct ProfileView: View {
     @State private var userName = "Nick Sobchak"
@@ -14,28 +15,11 @@ struct ProfileView: View {
     @State private var showEditEmail = false
     @State private var editingEmail = ""
 
-    // ── CHANGE PIN ──
-    @State private var showChangePin = false
-    @State private var pinState: PinState = .enterNewFirst
-    @State private var currentPin = ""
-    @State private var newPin = ""
-    @State private var confirmPin = ""
-    @State private var showPinError = false
-    @State private var pinErrorMessage = ""
-
-    enum PinState {
-        case enterNewFirst       // First time setup - enter PIN twice
-        case enterCurrent        // PIN exists - enter current PIN
-        case enterNewOnce        // PIN exists - enter new PIN once
-        case enterNewTwice       // PIN exists - enter new PIN twice
-        case success
-    }
-
     // ── PREFERENCES ──
-    @State private var notificationsOn = true
+    @AppStorage("notifications") private var notificationsOn = false
     @AppStorage("darkMode") private var darkModeOn = true
-    @State private var currency = "USD"
-    @State private var defaultView = "Portfolio"
+    @AppStorage("currency") private var currency = "USD"
+    @AppStorage("defaultView") private var defaultView = "Portfolio"
     @State private var showCurrencyPicker = false
     @State private var showDefaultViewPicker = false
 
@@ -43,6 +27,8 @@ struct ProfileView: View {
     @State private var linkedAccountCount = 2
     @State private var isSyncing = false
     @State private var syncComplete = false
+    @State private var syncErrorMessage = ""
+    @State private var showSyncError = false
     @State private var showExportSheet = false
     @State private var isExporting = false
     @State private var exportComplete = false
@@ -96,14 +82,14 @@ struct ProfileView: View {
                             editingEmail = userEmail
                             showEditEmail = true
                         }
-                        profileRow(icon: "lock", label: "Change PIN", value: nil) {
-                            showChangePin = true
-                        }
                     }
 
                     // ── PREFERENCES ──
                     profileSection(title: "Preferences") {
                         toggleRow(icon: "bell", label: "Notifications", isOn: $notificationsOn)
+                            .onChange(of: notificationsOn) { on in
+                                toggleWeeklyNotification(on)
+                            }
                         toggleRow(icon: "moon", label: "Dark Mode", isOn: $darkModeOn)
                         profileRow(icon: "dollarsign.circle", label: "Currency", value: currency) {
                             showCurrencyPicker = true
@@ -153,6 +139,13 @@ struct ProfileView: View {
                 }
             }
             .background(Color.themeBackground)
+            .onAppear {
+                UNUserNotificationCenter.current().getNotificationSettings { settings in
+                    DispatchQueue.main.async {
+                        notificationsOn = settings.authorizationStatus == .authorized
+                    }
+                }
+            }
             // ── EDIT NAME SHEET ──
             .sheet(isPresented: $showEditName) {
                 editSheet(title: "Edit Name") {
@@ -179,195 +172,6 @@ struct ProfileView: View {
                 } onConfirm: {
                     userEmail = editingEmail
                     showEditEmail = false
-                }
-            }
-            // ── CHANGE PIN SHEET ──
-            .sheet(isPresented: $showChangePin) {
-                VStack(spacing: 0) {
-                    // Custom top bar
-                    HStack {
-                        Button {
-                            resetPinState()
-                            showChangePin = false
-                        } label: {
-                            Text("Cancel")
-                                .font(.custom("Palatino", size: 15))
-                                .foregroundColor(.themeMuted)
-                        }
-
-                        Spacer()
-
-                        Text(pinState == .enterNewFirst ? "Set PIN" : "Change PIN")
-                            .font(.custom("Palatino", size: 17))
-                            .foregroundColor(.themeText)
-
-                        Spacer()
-
-                        switch pinState {
-                        case .enterNewFirst, .enterNewTwice:
-                            Button {
-                                if newPin.count == 4 && confirmPin.count == 4 {
-                                    if newPin == confirmPin {
-                                        saveNewPin(newPin)
-                                        showChangePin = false
-                                    } else {
-                                        showError("PINs do not match")
-                                    }
-                                }
-                            } label: {
-                                Text("Done")
-                                    .font(.custom("Palatino", size: 15))
-                                    .foregroundColor((newPin.count == 4 && confirmPin.count == 4 && newPin == confirmPin) ? .white : .themeMuted.opacity(0.5))
-                            }
-                        case .enterCurrent:
-                            Button {
-                                if currentPin.count == 4 {
-                                    verifyCurrentPin(currentPin)
-                                }
-                            } label: {
-                                Text("Next")
-                                    .font(.custom("Palatino", size: 15))
-                                    .foregroundColor(currentPin.count == 4 ? .white : .themeMuted.opacity(0.5))
-                            }
-                        case .enterNewOnce:
-                            Button {
-                                if newPin.count == 4 {
-                                    verifyNewPin(newPin)
-                                }
-                            } label: {
-                                Text("Next")
-                                    .font(.custom("Palatino", size: 15))
-                                    .foregroundColor(newPin.count == 4 ? .white : .themeMuted.opacity(0.5))
-                            }
-                        default:
-                            EmptyView()
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-
-                    Divider().background(Color.white.opacity(0.08))
-
-                    // PIN pad content
-                    VStack(spacing: 20) {
-                        if !pinErrorMessage.isEmpty {
-                            Text(pinErrorMessage)
-                                .font(.custom("Palatino", size: 13))
-                                .foregroundColor(.red)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 16)
-                        }
-
-                        switch pinState {
-                        case .enterNewFirst:
-                            Text("Set a 4-digit PIN for your account")
-                                .font(.custom("Palatino", size: 15))
-                                .foregroundColor(.themeMuted)
-                                .multilineTextAlignment(.center)
-
-                            PinpadView(pin: $newPin, maxDigits: 4, instructions: "Enter your 4-digit PIN") {
-                                if newPin.count == 4 {
-                                    pinState = .enterNewTwice
-                                    confirmPin = ""
-                                }
-                            }
-                            .onChange(of: newPin) {
-                                if newPin.count == 4 {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                        pinState = .enterNewTwice
-                                        confirmPin = ""
-                                    }
-                                }
-                            }
-
-                        case .enterNewTwice:
-                            Text("Confirm your 4-digit PIN")
-                                .font(.custom("Palatino", size: 15))
-                                .foregroundColor(.themeMuted)
-                                .multilineTextAlignment(.center)
-
-                            PinpadView(pin: $confirmPin, maxDigits: 4, instructions: "Re-enter your PIN") {
-                                if confirmPin.count == 4 {
-                                    if newPin == confirmPin {
-                                        saveNewPin(newPin)
-                                        showChangePin = false
-                                    } else {
-                                        showError("PINs do not match. Try again.")
-                                        newPin = ""
-                                        confirmPin = ""
-                                        pinState = .enterNewFirst
-                                    }
-                                }
-                            }
-                            .onChange(of: confirmPin) {
-                                if confirmPin.count == 4 {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                        if newPin == confirmPin {
-                                            saveNewPin(newPin)
-                                            showChangePin = false
-                                        } else {
-                                            showError("PINs do not match. Try again.")
-                                            newPin = ""
-                                            confirmPin = ""
-                                            pinState = .enterNewFirst
-                                        }
-                                    }
-                                }
-                            }
-
-                        case .enterCurrent:
-                            Text("Enter your current 4-digit PIN")
-                                .font(.custom("Palatino", size: 15))
-                                .foregroundColor(.themeMuted)
-                                .multilineTextAlignment(.center)
-
-                            PinpadView(pin: $currentPin, maxDigits: 4, instructions: "Verify your existing PIN") {
-                                if currentPin.count == 4 {
-                                    verifyCurrentPin(currentPin)
-                                }
-                            }
-                            .onChange(of: currentPin) {
-                                if currentPin.count == 4 {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                        verifyCurrentPin(currentPin)
-                                    }
-                                }
-                            }
-
-                        case .enterNewOnce:
-                            Text("Enter your new 4-digit PIN")
-                                .font(.custom("Palatino", size: 15))
-                                .foregroundColor(.themeMuted)
-                                .multilineTextAlignment(.center)
-
-                            PinpadView(pin: $newPin, maxDigits: 4, instructions: "Enter your new PIN") {
-                                if newPin.count == 4 {
-                                    verifyNewPin(newPin)
-                                }
-                            }
-                            .onChange(of: newPin) {
-                                if newPin.count == 4 {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                        verifyNewPin(newPin)
-                                    }
-                                }
-                            }
-
-                        case .success:
-                            EmptyView()
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 20)
-
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.themeBackground)
-                .onChange(of: showChangePin) {
-                    if !showChangePin {
-                        resetPinState()
-                    }
                 }
             }
             // ── CURRENCY PICKER ──
@@ -436,7 +240,11 @@ struct ProfileView: View {
             }
             // ── EXPORT SHEET ──
             .sheet(isPresented: $showExportSheet) {
-                editSheet(title: "Export Data") {
+                editSheet(title: "Export Data", onCancel: {
+                    showExportSheet = false
+                    exportComplete = false
+                    isExporting = false
+                }) {
                     VStack(spacing: 16) {
                         if isExporting {
                             ProgressView()
@@ -466,9 +274,15 @@ struct ProfileView: View {
                 } onConfirm: {
                     if !isExporting && !exportComplete {
                         Task { await exportData() }
-                    } else {
+                    } else if exportComplete {
                         showExportSheet = false
                         exportComplete = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            if let url = self.exportURL {
+                                let vc = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+                                UIApplication.shared.firstKeyWindow?.rootViewController?.present(vc, animated: true)
+                            }
+                        }
                     }
                 }
             }
@@ -554,6 +368,10 @@ struct ProfileView: View {
                 }
             }
         }
+        .task {
+            let api = APIClient()
+            linkedAccountCount = (try? await api.getLinkedItemCount()) ?? 0
+        }
     }
 
     // ── SYNC ROW ──
@@ -592,13 +410,23 @@ struct ProfileView: View {
             syncComplete = false
             Task {
                 let api = APIClient()
-                _ = try? await api.syncPlaidAccounts()
-                _ = try? await api.recordNetWorthSnapshot()
+                do {
+                    _ = try await api.syncPlaidAccounts()
+                    _ = try await api.recordNetWorthSnapshot()
+                    syncComplete = true
+                } catch {
+                    syncErrorMessage = "Sync failed. Check your connection."
+                    showSyncError = true
+                }
                 isSyncing = false
-                syncComplete = true
                 try? await Task.sleep(for: .seconds(2))
                 syncComplete = false
             }
+        }
+        .alert("Sync Error", isPresented: $showSyncError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(syncErrorMessage)
         }
     }
 
@@ -638,14 +466,14 @@ struct ProfileView: View {
     }
 
     // ── GENERIC EDIT SHEET ──
-    private func editSheet<Content: View>(title: String, @ViewBuilder content: () -> Content, onConfirm: @escaping () -> Void) -> some View {
+    private func editSheet<Content: View>(title: String, onCancel: (() -> Void)? = nil, @ViewBuilder content: () -> Content, onConfirm: @escaping () -> Void) -> some View {
         VStack(spacing: 0) {
             // ── CUSTOM TOP BAR ──
             HStack {
                 Text("Cancel")
                     .font(.custom("Palatino", size: 15))
                     .foregroundColor(.themeMuted)
-                    .onTapGesture { onConfirm() }
+                    .onTapGesture { onCancel?() ?? onConfirm() }
 
                 Spacer()
 
@@ -731,54 +559,6 @@ struct ProfileView: View {
             .padding(.leading, 52)
     }
 
-    // ── PIN MANAGEMENT HELPERS ──
-    private func resetPinState() {
-        pinState = .enterNewFirst
-        currentPin = ""
-        newPin = ""
-        confirmPin = ""
-        pinErrorMessage = ""
-    }
-
-    private func showError(_ message: String) {
-        pinErrorMessage = message
-        withAnimation(.spring()) {
-            showPinError = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            pinErrorMessage = ""
-        }
-    }
-
-    // Simulated API calls - in real app these would call your backend
-    private func isPinSet() -> Bool {
-        // Check if a PIN is currently set
-        return UserDefaults.standard.string(forKey: "userPINHash") != nil
-    }
-
-    private func verifyCurrentPin(_ pin: String) {
-        // In real app: verify against stored PIN hash
-        // Move to entering new PIN
-        pinState = .enterNewOnce
-        currentPin = ""
-    }
-
-    private func verifyNewPin(_ pin: String) {
-        // In real app: validate new PIN
-        // Move to confirmation screen
-        confirmPin = ""
-        pinState = .enterNewTwice
-    }
-
-    private func saveNewPin(_ pin: String) {
-        // Store PIN hash locally (in real app: send to backend and store securely)
-        // For demo: use UserDefaults with a simple hash
-        let pinHash = pin.hashValue.description
-        UserDefaults.standard.set(pinHash, forKey: "userPINHash")
-        print("PIN saved locally (hash: \(pinHash))")
-        pinState = .success
-    }
-
     // ── TOGGLE ROW ──
     @ViewBuilder
     private func toggleRow(icon: String, label: String, isOn: Binding<Bool>) -> some View {
@@ -819,6 +599,40 @@ struct ProfileView: View {
         Divider()
             .background(Color(light: Color.black.opacity(0.06), dark: Color.white.opacity(0.06)))
             .padding(.leading, 52)
+    }
+
+    // MARK: - Notifications
+
+    private func toggleWeeklyNotification(_ on: Bool) {
+        let center = UNUserNotificationCenter.current()
+        if on {
+            center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+                guard granted else {
+                    DispatchQueue.main.async { notificationsOn = false }
+                    return
+                }
+                DispatchQueue.main.async { self.scheduleWeeklyReminder() }
+            }
+        } else {
+            center.removePendingNotificationRequests(withIdentifiers: ["weeklySpendingReminder"])
+        }
+    }
+
+    private func scheduleWeeklyReminder() {
+        let center = UNUserNotificationCenter.current()
+        let content = UNMutableNotificationContent()
+        content.title = "On The Money"
+        content.body = "Money on the move? Check out your spending and earnings."
+        content.sound = .default
+
+        var dateComponents = DateComponents()
+        dateComponents.weekday = 2  // Monday
+        dateComponents.hour = 9
+        dateComponents.minute = 0
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        let request = UNNotificationRequest(identifier: "weeklySpendingReminder", content: content, trigger: trigger)
+        center.add(request)
     }
 }
 
