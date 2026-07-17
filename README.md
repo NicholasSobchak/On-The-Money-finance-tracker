@@ -10,17 +10,12 @@
 On The Money is a personal finance tracker with a Java/Spring Boot API, PostgreSQL persistence, a C++ engine for heavy computations, and a SwiftUI iOS app. It tracks all your finances in one place — accounts, transactions, net worth history, credit score, stock market watchlist, and retirement projections.
 
 ### Features
-- **Account Management** — checking, savings, credit card, and investment accounts with full CRUD
-- **Transactions** — deposits, withdrawals, and transfers between accounts with date/description tracking
-- **Net Worth Tracking** — daily snapshots with interactive line chart and time range filters (1W, 1M, 3M, YTD, 1Y, ALL)
-- **Credit Score** — manual entry with visual range bars, change arrows, and range indicators
-- **Monte Carlo Projections** — C++ engine runs 10,000 simulations to project portfolio growth over time with pessimistic/median/optimistic scenarios
-- **Stock Market Integration** — live quotes and market indices (S&P 500, NASDAQ, Dow Jones, Russell 2000, VIX) via [Finnhub](https://finnhub.io/)
-- **Stock Watchlist** — search and track stocks with real-time prices, top 5 stock performance comparison
+- **Account Management** such as checking, savings, credit card, and investment accounts with full CRUD
+- **Transactions** with date/description tracking
+- **Net Worth Tracking** shows daily snapshots with interactive line chart and time range filters (1W, 1M, 3M, YTD, 1Y, ALL)
+- **Monte Carlo Projections** is C++ engine runs 10,000 simulations to project portfolio growth over time with pessimistic/median/optimistic scenarios
+- **Stock Market Integration** tracks live quotes and market indices (S&P 500, NASDAQ, Dow Jones, Russell 2000, VIX) via [Finnhub](https://finnhub.io/)
 - **Plaid Bank Sync** — connect real bank and brokerage accounts via [Plaid](https://plaid.com/) for automatic transaction imports
-- **CSV Export** — export all accounts and transactions to CSV via iOS share sheet
-- **Dark Mode** — full adaptive theming across light and dark modes
-- **iOS App** — native SwiftUI frontend with custom tab bar and Palatino typography
 
 # Building this project
 
@@ -55,15 +50,6 @@ On The Money is a personal finance tracker with a Java/Spring Boot API, PostgreS
 ├── ios/
 │   └── OnTheMoney/
 │       └── OnTheMoney/
-│           ├── OnTheMoneyApp.swift
-│           ├── ContentView.swift
-│           ├── PortfolioView.swift
-│           ├── AccountsView.swift
-│           ├── StocksView.swift
-│           ├── ProfileView.swift
-│           ├── ProjectionsView.swift
-│           ├── APIClient.swift
-│           └── Models.swift
 ├── src/
 │   ├── main/
 │   │   ├── java/
@@ -75,14 +61,7 @@ On The Money is a personal finance tracker with a Java/Spring Boot API, PostgreS
 │   │   │       └── service/
 │   │   └── resources/
 │   └── test/
-├── .github/workflows/
-│   ├── ci.yml
-│   └── deploy.yml
-├── build.gradle
-├── docker-compose.yml
-├── Dockerfile
-├── nginx.conf
-└── .env.example
+└── build.gradle
 ```
 
 ### Code Formatting (Pre-commit Hook)
@@ -171,50 +150,6 @@ Open `ios/OnTheMoney/OnTheMoney.xcodeproj` in Xcode and run on a simulator or de
 - **Debug builds** connect to `http://localhost:8080/api/`
 - **Release builds** connect to the VPS at the configured address
 
-## Docker Deployment
-
-### Local Development
-
-```bash
-docker compose up -d
-```
-
-This starts PostgreSQL, the Spring Boot app, and Nginx. The API is available at `http://localhost:80`.
-
-### VPS Deployment
-
-The app auto-deploys on push to `main` via GitHub Actions (`.github/workflows/deploy.yml`).
-
-**One-time VPS setup:**
-
-```bash
-# SSH into your VPS
-ssh user@your-vps-ip
-
-# Clone the repo
-mkdir -p /opt/onthemoney && cd /opt/onthemoney
-git clone https://github.com/NicholasSobchak/On-The-Money-finance-tracker.git .
-
-# Create .env with your secrets
-cp .env.example .env
-nano .env  # fill in real values
-
-# Start everything
-docker compose up -d
-```
-
-**Required GitHub Secrets** for auto-deploy:
-| Secret | Value |
-|--------|-------|
-| `VPS_HOST` | Your VPS IP address |
-| `VPS_USER` | SSH username |
-| `VPS_SSH_KEY` | Private SSH key |
-| `DB_PASSWORD` | Database password |
-| `PLAID_CLIENT_ID` | Plaid client ID |
-| `PLAID_SECRET` | Plaid secret |
-| `FINNHUB_API_KEY` | Finnhub API key |
-| `API_KEY` | API key for iOS auth |
-
 ## API Endpoints
 
 All endpoints require `X-API-Key` header (except `/api/status` and `/`).
@@ -253,7 +188,6 @@ DEL  /api/transactions/1
 
 # Transfers
 POST /api/transfers?fromAccountId=2&toAccountId=1&amount=2000&date=2026-06-19
-
 # Credit Score
 GET  /api/credit-score
 POST /api/credit-score?score=742
