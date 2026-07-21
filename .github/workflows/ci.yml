@@ -82,3 +82,15 @@ jobs:
 
     - name: Build Java API
       run: ./gradlew build
+
+    - name: Run OWASP Dependency Check
+      run: ./gradlew dependencyCheckAnalyze
+      continue-on-error: true
+
+    - name: Upload Security Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-check-report
+        path: build/reports/dependency-check-report.html
+        retention-days: 30

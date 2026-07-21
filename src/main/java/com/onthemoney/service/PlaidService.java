@@ -31,12 +31,14 @@ public class PlaidService {
   private final PlaidApi plaidClient;
   private final PlaidItemRepository plaidItemRepo;
   private final AccountRepository accountRepo;
+  private final EncryptionService encryptionService;
   private final ObjectMapper mapper;
   private final String redirectUri;
 
   public PlaidService(
       PlaidItemRepository plaidItemRepo,
       AccountRepository accountRepo,
+      EncryptionService encryptionService,
       ObjectMapper mapper,
       @Value("${plaid.client-id}") String clientId,
       @Value("${plaid.secret}") String secret,
@@ -88,6 +90,7 @@ public class PlaidService {
     this.plaidClient = apiClient.createService(PlaidApi.class);
     this.plaidItemRepo = plaidItemRepo;
     this.accountRepo = accountRepo;
+    this.encryptionService = encryptionService;
     this.mapper = mapper;
     this.redirectUri = redirectUri;
   }
@@ -131,7 +134,7 @@ public class PlaidService {
           plaidClient.itemPublicTokenExchange(request).execute();
 
       PlaidItemEntity item = new PlaidItemEntity();
-      item.setAccessToken(response.body().getAccessToken());
+      item.setAccessToken(encryptionService.encrypt(response.body().getAccessToken()));
       item.setItemId(response.body().getItemId());
       item.setInstitutionId(institutionId);
       item.setInstitutionName(institutionName);
@@ -146,8 +149,9 @@ public class PlaidService {
     List<Map<String, Object>> allAccounts = new ArrayList<>();
 
     for (PlaidItemEntity item : plaidItemRepo.findAll()) {
+      String decryptedToken = encryptionService.decrypt(item.getAccessToken());
       AccountsBalanceGetRequest request =
-          new AccountsBalanceGetRequest().accessToken(item.getAccessToken());
+          new AccountsBalanceGetRequest().accessToken(decryptedToken);
 
       try {
         Response<AccountsGetResponse> response = plaidClient.accountsBalanceGet(request).execute();
@@ -177,9 +181,10 @@ public class PlaidService {
     LocalDate endDate = LocalDate.parse(end);
 
     for (PlaidItemEntity item : plaidItemRepo.findAll()) {
+      String decryptedToken = encryptionService.decrypt(item.getAccessToken());
       TransactionsGetRequest request =
           new TransactionsGetRequest()
-              .accessToken(item.getAccessToken())
+              .accessToken(decryptedToken)
               .startDate(startDate)
               .endDate(endDate);
 

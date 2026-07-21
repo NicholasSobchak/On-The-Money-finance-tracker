@@ -86,3 +86,19 @@ DerivedData/
 
 # Environment files
 .env
+.env.*
+!.env.example
+
+# TLS certificates
+*.pem
+*.key
+*.p12
+*.jks
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Spring local config
+application-local.*

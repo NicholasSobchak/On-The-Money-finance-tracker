@@ -6,6 +6,7 @@ import com.onthemoney.entity.AccountEntity;
 import com.onthemoney.service.PlaidService;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +19,15 @@ public class PlaidController {
 
   private final PlaidService plaidService;
   private final ObjectMapper mapper;
+  private final String plaidEnv;
 
-  public PlaidController(PlaidService plaidService, ObjectMapper mapper) {
+  public PlaidController(
+      PlaidService plaidService,
+      ObjectMapper mapper,
+      @Value("${plaid.env:production}") String plaidEnv) {
     this.plaidService = plaidService;
     this.mapper = mapper;
+    this.plaidEnv = plaidEnv;
   }
 
   // POST /api/plaid/link-token - create a link token for iOS Plaid Link
@@ -83,6 +89,10 @@ public class PlaidController {
   // POST /api/plaid/sandbox-connect - bypass Link for sandbox, exchange token + sync
   @PostMapping("/sandbox-connect")
   public List<AccountEntity> sandboxConnect() {
+    if (!"sandbox".equals(plaidEnv)) {
+      throw new ResponseStatusException(
+          HttpStatus.FORBIDDEN, "Sandbox endpoint only available in sandbox environment");
+    }
     return plaidService.sandboxConnect();
   }
 

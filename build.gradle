@@ -3,6 +3,7 @@ plugins {
     id 'org.springframework.boot' version '3.3.0'
     id 'io.spring.dependency-management' version '1.1.5'
     id 'com.diffplug.spotless' version '6.25.0'
+    id 'org.owasp.dependencycheck' version '10.0.3'
 }
 
 group = 'com.onthemoney'
@@ -33,8 +34,16 @@ dependencies {
     // 3. DATABASE DRIVER: The direct translation pipeline to your Docker PostgreSQL database
     runtimeOnly 'org.postgresql:postgresql'
 
-    // 4. SECURITY: Spring Security for API key authentication
+    // 4. SECURITY: Spring Security for API key authentication and JWT
     implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // 4b. JWT: JSON Web Token support for stateless authentication
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // 4c. TOTP: Time-based One-Time Password for MFA
+    implementation 'dev.samstevens.totp:totp:1.7.1'
 
     // 5. TESTING: Includes JUnit and Mockito so your GitHub Actions pipeline can run automated tests
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -50,6 +59,14 @@ dependencies {
 spotless {
     java {
         googleJavaFormat()
+    }
+}
+
+dependencyCheck {
+    failBuildOnCVSS = 7
+    suppressionFiles = []
+    analyzers {
+        nodeEnabled = false
     }
 }
 
