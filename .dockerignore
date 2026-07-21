@@ -6,7 +6,6 @@
 !.env.example
 certs/
 ios/
-engine/
 *.md
 LICENSE
 .pre-commit-config.yaml
@@ -15,11 +14,11 @@ LICENSE
 .dockerignore
 Dockerfile
 docker-compose*.yml
-.gradle/
-build/
 DerivedData/
 *.xcuserdata
 *.xcuserdatad
 valgrind_output.txt
 Testing/
 .cache/
+app/.gradle/
+app/build/
