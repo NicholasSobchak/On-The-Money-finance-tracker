@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TransactionDetailView: View {
+    @AppStorage("currency") private var currency = "USD"
     let transaction: Transaction
     @Environment(\.dismiss) var dismiss
     @State private var description: String = ""
@@ -48,7 +49,7 @@ struct TransactionDetailView: View {
 
                 // ── AMOUNT ──
                 VStack(spacing: 6) {
-                    Text(amount, format: .currency(code: "USD"))
+                    Text(amount, format: .currency(code: currency))
                         .font(.custom("Palatino", size: 48))
                         .fontWeight(.medium)
                         .foregroundColor(isCredit ? .green : .red)

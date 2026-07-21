@@ -109,4 +109,12 @@ public class PlaidController {
   public void deletePlaidAccounts() {
     plaidService.deletePlaidAccounts();
   }
+
+  // GET /api/plaid/items/count - number of linked institutions
+  @GetMapping("/items/count")
+  public JsonNode getLinkedItemCount() {
+    var result = mapper.createObjectNode();
+    result.put("count", plaidService.getLinkedItemCount());
+    return result;
+  }
 }

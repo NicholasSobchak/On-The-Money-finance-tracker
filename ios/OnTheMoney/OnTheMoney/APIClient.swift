@@ -1,13 +1,8 @@
 import Foundation
 
 class APIClient {
-    #if DEBUG
-    let base = URL(string: "http://localhost:8080/api/")!
-    private let apiKey = ""
-    #else
     let base = URL(string: "https://onthemoney.site/api/")!
     private let apiKey = "270f5e262845b42de509dc07fb23df3a0a71ca156766ab89b487b7e35b856e46"
-    #endif
 
     private func makeURL(path: String) throws -> URL {
         guard let url = URL(string: path, relativeTo: base) else {
@@ -16,11 +11,17 @@ class APIClient {
         return url
     }
 
-    private func authorizedRequest(url: URL, method: String = "GET") -> URLRequest {
+    private func authorizedRequest(url: URL, method: String = "GET", contentType: String? = nil, body: Data? = nil) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method
         if !apiKey.isEmpty {
             request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+        }
+        if let contentType = contentType {
+            request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        }
+        if let body = body {
+            request.httpBody = body
         }
         return request
     }
@@ -28,7 +29,7 @@ class APIClient {
     // MARK: - Status
 
     func getRoot() async throws -> String {
-        let (data, _) = try await URLSession.shared.data(from: base)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: base))
         guard let text = String(data: data, encoding: .utf8) else {
             throw URLError(.cannotDecodeContentData)
         }
@@ -37,7 +38,7 @@ class APIClient {
 
     func getStatus() async throws -> StatusResponse {
         let url = try makeURL(path: "status")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode(StatusResponse.self, from: data)
     }
 
@@ -45,59 +46,57 @@ class APIClient {
 
     func getNetWorth() async throws -> NetWorthResponse {
         let url = try makeURL(path: "net-worth")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode(NetWorthResponse.self, from: data)
     }
 
     func getTotalAssets() async throws -> TotalAssetsResponse {
         let url = try makeURL(path: "total-assets")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode(TotalAssetsResponse.self, from: data)
     }
 
     func getTotalLiabilities() async throws -> TotalLiabilitiesResponse {
         let url = try makeURL(path: "total-liabilities")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode(TotalLiabilitiesResponse.self, from: data)
     }
 
     func getInTheRed() async throws -> InTheRedResponse {
         let url = try makeURL(path: "in-the-red")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode(InTheRedResponse.self, from: data)
     }
 
     func getInTheGreen() async throws -> InTheGreenResponse {
         let url = try makeURL(path: "in-the-green")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode(InTheGreenResponse.self, from: data)
     }
 
     func getNetWorthHistory() async throws -> [NetWorthHistory] {
         let url = try makeURL(path: "net-worth/history")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode([NetWorthHistory].self, from: data)
     }
 
     func recordNetWorthSnapshot() async throws {
-        var request = URLRequest(url: try makeURL(path: "net-worth/snapshot"))
-        request.httpMethod = "POST"
-        let (_, _) = try await URLSession.shared.data(for: request)
+        let url = try makeURL(path: "net-worth/snapshot")
+        let (_, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "POST"))
     }
 
     // MARK: - Credit Score
 
     func getCreditScore() async throws -> CreditScoreResponse {
-        let (data, _) = try await URLSession.shared.data(from: try makeURL(path: "credit-score"))
+        let url = try makeURL(path: "credit-score")
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode(CreditScoreResponse.self, from: data)
     }
 
     func recordCreditScore(score: Int) async throws -> CreditScoreResponse {
-        var request = URLRequest(url: try makeURL(path: "credit-score"))
-        request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.httpBody = "score=\(score)".data(using: .utf8)
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let url = try makeURL(path: "credit-score")
+        let body = "score=\(score)".data(using: .utf8)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "POST", contentType: "application/x-www-form-urlencoded", body: body))
         return try JSONDecoder().decode(CreditScoreResponse.self, from: data)
     }
 
@@ -115,9 +114,7 @@ class APIClient {
             URLQueryItem(name: "simulations", value: String(simulations)),
         ]
         guard let url = components.url else { throw URLError(.badURL) }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "POST"))
         return try JSONDecoder().decode(ProjectionResponse.self, from: data)
     }
 
@@ -125,13 +122,13 @@ class APIClient {
 
     func getAccounts() async throws -> [Account] {
         let url = try makeURL(path: "accounts")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode([Account].self, from: data)
     }
 
     func getAccount(id: Int) async throws -> Account {
         let url = try makeURL(path: "accounts/\(id)")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode(Account.self, from: data)
     }
 
@@ -141,7 +138,7 @@ class APIClient {
         }
         components.queryItems = [URLQueryItem(name: "name", value: name)]
         guard let url = components.url else { throw URLError(.badURL) }
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode(Account.self, from: data)
     }
 
@@ -155,9 +152,7 @@ class APIClient {
             URLQueryItem(name: "accType", value: accType)
         ]
         guard let url = components.url else { throw URLError(.badURL) }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "POST"))
         return try JSONDecoder().decode(Account.self, from: data)
     }
 
@@ -171,22 +166,18 @@ class APIClient {
         if let accType = accType { items.append(URLQueryItem(name: "accType", value: accType)) }
         components.queryItems = items
         guard let url = components.url else { throw URLError(.badURL) }
-        var request = URLRequest(url: url)
-        request.httpMethod = "PUT"
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "PUT"))
         return try JSONDecoder().decode(Account.self, from: data)
     }
 
     func deleteAccount(id: Int) async throws {
-        var request = URLRequest(url: try makeURL(path: "accounts/\(id)"))
-        request.httpMethod = "DELETE"
-        let (_, _) = try await URLSession.shared.data(for: request)
+        let url = try makeURL(path: "accounts/\(id)")
+        let (_, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "DELETE"))
     }
 
     func deleteAllAccounts() async throws {
-        var request = URLRequest(url: try makeURL(path: "accounts"))
-        request.httpMethod = "DELETE"
-        let (_, _) = try await URLSession.shared.data(for: request)
+        let url = try makeURL(path: "accounts")
+        let (_, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "DELETE"))
     }
 
     // MARK: - Transactions
@@ -205,9 +196,7 @@ class APIClient {
             components.queryItems?.append(URLQueryItem(name: "date", value: d))
         }
         guard let url = components.url else { throw URLError(.badURL) }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "POST"))
         return try JSONDecoder().decode(Transaction.self, from: data)
     }
 
@@ -225,9 +214,7 @@ class APIClient {
             components.queryItems?.append(URLQueryItem(name: "date", value: d))
         }
         guard let url = components.url else { throw URLError(.badURL) }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "POST"))
         return try JSONDecoder().decode(Transaction.self, from: data)
     }
 
@@ -244,15 +231,13 @@ class APIClient {
             components.queryItems?.append(URLQueryItem(name: "date", value: d))
         }
         guard let url = components.url else { throw URLError(.badURL) }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "POST"))
         return try JSONDecoder().decode(Transaction.self, from: data)
     }
 
     func getTransactions() async throws -> [Transaction] {
         let url = try makeURL(path: "transactions")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode([Transaction].self, from: data)
     }
 
@@ -268,7 +253,7 @@ class APIClient {
             components.queryItems?.append(URLQueryItem(name: "accountId", value: String(id)))
         }
         guard let url = components.url else { throw URLError(.badURL) }
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode([Transaction].self, from: data)
     }
 
@@ -282,93 +267,92 @@ class APIClient {
         if let d = date { items.append(URLQueryItem(name: "date", value: d)) }
         components.queryItems = items
         guard let url = components.url else { throw URLError(.badURL) }
-        var request = URLRequest(url: url)
-        request.httpMethod = "PUT"
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "PUT"))
         return try JSONDecoder().decode(Transaction.self, from: data)
     }
 
     func deleteTransaction(id: Int) async throws {
-        var request = URLRequest(url: try makeURL(path: "transactions/\(id)"))
-        request.httpMethod = "DELETE"
-        let (_, _) = try await URLSession.shared.data(for: request)
+        let url = try makeURL(path: "transactions/\(id)")
+        let (_, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "DELETE"))
     }
 
     // MARK: - Plaid
 
     func createLinkToken() async throws -> String {
-        var request = URLRequest(url: try makeURL(path: "plaid/link-token"))
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(["clientUserId": "user-1"])
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let url = try makeURL(path: "plaid/link-token")
+        let body = try JSONEncoder().encode(["clientUserId": "user-1"])
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "POST", contentType: "application/json", body: body))
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        return json?["linkToken"] as? String ?? ""
+        guard let token = json?["linkToken"] as? String, !token.isEmpty else {
+            throw URLError(.badServerResponse)
+        }
+        return token
     }
 
     func exchangePlaidToken(publicToken: String, institutionId: String, institutionName: String) async throws {
-        var request = URLRequest(url: try makeURL(path: "plaid/exchange"))
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let url = try makeURL(path: "plaid/exchange")
         let body: [String: Any] = [
             "publicToken": publicToken,
             "institutionId": institutionId,
             "institutionName": institutionName
         ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        let (_, _) = try await URLSession.shared.data(for: request)
+        let bodyData = try JSONSerialization.data(withJSONObject: body)
+        let (_, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "POST", contentType: "application/json", body: bodyData))
     }
 
     func syncPlaidAccounts() async throws -> [Account] {
-        var request = URLRequest(url: try makeURL(path: "plaid/sync"))
-        request.httpMethod = "POST"
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let url = try makeURL(path: "plaid/sync")
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "POST"))
         return try JSONDecoder().decode([Account].self, from: data)
     }
 
     func sandboxConnect() async throws -> [Account] {
-        var request = URLRequest(url: try makeURL(path: "plaid/sandbox-connect"))
-        request.httpMethod = "POST"
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let url = try makeURL(path: "plaid/sandbox-connect")
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "POST"))
         return try JSONDecoder().decode([Account].self, from: data)
+    }
+
+    func getLinkedItemCount() async throws -> Int {
+        let url = try makeURL(path: "plaid/items/count")
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        return json?["count"] as? Int ?? 0
     }
 
     // MARK: - Stocks
 
     func getStockQuote(symbol: String) async throws -> StockQuote {
         let url = try makeURL(path: "stocks/quote?symbol=\(symbol)")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode(StockQuote.self, from: data)
     }
 
     func searchStocks(query: String) async throws -> [SearchResult] {
         let url = try makeURL(path: "stocks/search?q=\(query)")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode([SearchResult].self, from: data)
     }
 
     func getMarketOverview() async throws -> MarketOverview {
         let url = try makeURL(path: "stocks/overview")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode(MarketOverview.self, from: data)
     }
 
     func getWatchlist() async throws -> [StockQuote] {
         let url = try makeURL(path: "stocks/watchlist")
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode([StockQuote].self, from: data)
     }
 
     func addToWatchlist(symbol: String) async throws {
-        var request = URLRequest(url: try makeURL(path: "stocks/watchlist?symbol=\(symbol)"))
-        request.httpMethod = "POST"
-        let (_, _) = try await URLSession.shared.data(for: request)
+        let url = try makeURL(path: "stocks/watchlist?symbol=\(symbol)")
+        let (_, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "POST"))
     }
 
     func removeFromWatchlist(symbol: String) async throws {
-        var request = URLRequest(url: try makeURL(path: "stocks/watchlist/\(symbol)"))
-        request.httpMethod = "DELETE"
-        let (_, _) = try await URLSession.shared.data(for: request)
+        let url = try makeURL(path: "stocks/watchlist/\(symbol)")
+        let (_, _) = try await URLSession.shared.data(for: authorizedRequest(url: url, method: "DELETE"))
     }
 
     func getStockCandles(symbol: String, resolution: String = "D", from: Int, to: Int) async throws -> StockCandle {
@@ -382,7 +366,7 @@ class APIClient {
             URLQueryItem(name: "to", value: String(to))
         ]
         guard let url = components.url else { throw URLError(.badURL) }
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await URLSession.shared.data(for: authorizedRequest(url: url))
         return try JSONDecoder().decode(StockCandle.self, from: data)
     }
 }

@@ -31,6 +31,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       JWT_SECRET: ${JWT_SECRET}
       PLAID_REDIRECT_URI: ${PLAID_REDIRECT_URI:-}
+      TZ: America/New_York
     ports:
       - "8080:8080"
     depends_on:

@@ -112,13 +112,36 @@ struct ProjectionsView: View {
                                 .padding(.top, 28)
 
                             Chart(chartData) { line in
+                                // area gradient under each line
+                                AreaMark(
+                                    x: .value("Year", line.year),
+                                    y: .value("Balance", line.value),
+                                    series: .value("Scenario", line.scenario)
+                                )
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [
+                                            colorForScenario(line.scenario).opacity(line.scenario == "Median" ? 0.25 : 0.12),
+                                            colorForScenario(line.scenario).opacity(0.0)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                                .interpolationMethod(.catmullRom)
+
                                 LineMark(
                                     x: .value("Year", line.year),
                                     y: .value("Balance", line.value),
                                     series: .value("Scenario", line.scenario)
                                 )
                                 .foregroundStyle(colorForScenario(line.scenario))
-                                .lineStyle(StrokeStyle(lineWidth: line.scenario == "Median" ? 2.5 : 1.5))
+                                .lineStyle(StrokeStyle(
+                                    lineWidth: line.scenario == "Median" ? 2.5 : 1.5,
+                                    lineCap: .round,
+                                    lineJoin: .round
+                                ))
+                                .interpolationMethod(.catmullRom)
                             }
                             .chartForegroundStyleScale([
                                 "Pessimistic": .red,
@@ -129,7 +152,7 @@ struct ProjectionsView: View {
                             .chartYScale(domain: 0...maxChartValue * 1.1)
                             .chartXAxis {
                                 AxisMarks(position: .bottom) { value in
-                                    AxisGridLine()
+                                    AxisGridLine(stroke: StrokeStyle(dash: [4]))
                                     AxisValueLabel {
                                         if let year = value.as(Int.self) {
                                             Text("Y\(year)")
@@ -152,8 +175,6 @@ struct ProjectionsView: View {
                                 }
                             }
                             .frame(height: 260)
-                            .background(Color.themeSurface)
-                            .cornerRadius(12)
 
                             // Legend
                             HStack(spacing: 16) {
